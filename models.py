@@ -24,6 +24,12 @@ class Pais(db.Model):
     nombre = Column(String(100), nullable=False)
     regiones = relationship('Region', backref='pais', lazy=True)
 
+    def serialize(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+        }
+
 # Clase Region
 class Region(db.Model):
     __tablename__ = 'region'
@@ -32,12 +38,26 @@ class Region(db.Model):
     pais_id = Column(Integer, ForeignKey('pais.id'), nullable=False)
     comunas = relationship('Comuna', backref='region', lazy=True)
 
+    def serialize(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "pais_id": self.pais_id
+        }
+
 # Clase Comuna
 class Comuna(db.Model):
     __tablename__ = 'comuna'
     id = Column(Integer, primary_key=True)
     nombre = Column(String(100), nullable=False)
     region_id = Column(Integer, ForeignKey('region.id'), nullable=False)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "region_id": self.region_id
+        }
 
 # Clase Rol
 class Rol(db.Model):
@@ -46,12 +66,26 @@ class Rol(db.Model):
     nombre = Column(String(50), nullable=False)
     salario_base = Column(Integer, nullable=False)
 
+    def serialize(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "salario_base": self.salario_base
+        }
+
 # Clase Beneficio
 class Beneficio(db.Model):
     __tablename__ = 'beneficio'
     id = Column(Integer, primary_key=True)
     precio = Column(Integer, nullable=False)
     descripcion = Column(String(255), nullable=False)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "precio": self.precio,
+            "descripcion": self.descripcion
+        }
 
 # Clase User
 class User(db.Model):
@@ -71,6 +105,21 @@ class User(db.Model):
     cafeteria_id = Column(Integer, ForeignKey('cafeteria.id'), nullable=False)
     cafeteria = relationship('Cafeteria', backref='users', lazy=True)
 
+    def serialize(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "apellido_paterno": self.apellido_paterno,
+            "apellido_materno": self.apellido_materno,
+            "rut": self.rut,
+            "fecha_nacimiento": str(self.fecha_nacimiento),
+            "usuario": self.usuario,
+            "correo": self.correo,
+            "rol_id": self.rol_id,
+            "cafeteria_id": self.cafeteria_id,
+            "beneficios": [beneficio.serialize() for beneficio in self.beneficios]
+        }
+
 # Clase Producto
 class Producto(db.Model):
     __tablename__ = 'producto'
@@ -85,11 +134,28 @@ class Producto(db.Model):
     tipo_item_id = Column(Integer, ForeignKey('tipo_item.id'), nullable=False)
     tipo_item = relationship('TipoItem', backref='productos', lazy=True)
 
+    def serialize(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "precio": self.precio,
+            "stock": self.stock,
+            "categoria_producto_id": self.categoria_producto_id,
+            "cafeteria_id": self.cafeteria_id,
+            "tipo_item_id": self.tipo_item_id
+        }
+
 # Clase CategoriaProducto
 class CategoriaProducto(db.Model):
     __tablename__ = 'categoria_producto'
     id = Column(Integer, primary_key=True)
     nombre = Column(String(100), nullable=False)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre
+        }
 
 # Clase ComboMenu
 class ComboMenu(db.Model):
@@ -103,6 +169,16 @@ class ComboMenu(db.Model):
     tipo_item = relationship('TipoItem', backref='combos', lazy=True)
     productos = relationship('Producto', secondary=detalle_combo_menu, lazy='subquery')
 
+    def serialize(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "precio": self.precio,
+            "cafeteria_id": self.cafeteria_id,
+            "tipo_item_id": self.tipo_item_id,
+            "productos": [producto.serialize() for producto in self.productos]
+        }
+
 # Clase Cafeteria
 class Cafeteria(db.Model):
     __tablename__ = 'cafeteria'
@@ -112,11 +188,25 @@ class Cafeteria(db.Model):
     comuna_id = Column(Integer, ForeignKey('comuna.id'), nullable=False)
     comuna = relationship('Comuna', backref='cafeterias', lazy=True)
 
+    def serialize(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "direccion": self.direccion,
+            "comuna_id": self.comuna_id
+        }
+
 # Clase TipoItem
 class TipoItem(db.Model):
     __tablename__ = 'tipo_item'
     id = Column(Integer, primary_key=True)
     nombre = Column(String(100), nullable=False)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre
+        }
 
 # Clase Venta
 class Venta(db.Model):
@@ -133,6 +223,19 @@ class Venta(db.Model):
     cafeteria = relationship('Cafeteria', backref='ventas', lazy=True)
     detalles = relationship('DetalleVenta', backref='venta', lazy=True)
 
+    def serialize(self):
+        return {
+            "id": self.id,
+            "fecha": str(self.fecha),
+            "hora": str(self.hora),
+            "monto_total": self.monto_total,
+            "estado": self.estado,
+            "comentarios": self.comentarios,
+            "user_id": self.user_id,
+            "cafeteria_id": self.cafeteria_id,
+            "detalles": [detalle.serialize() for detalle in self.detalles]
+        }
+
 # Clase DetalleVenta
 class DetalleVenta(db.Model):
     __tablename__ = 'detalle_venta'
@@ -143,3 +246,13 @@ class DetalleVenta(db.Model):
     tipo_item = relationship('TipoItem', backref='detalles', lazy=True)
     cantidad = Column(Integer, nullable=False)
     precio_unitario = Column(Integer, nullable=False)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "venta_id": self.venta_id,
+            "item_id": self.item_id,
+            "tipo_item_id": self.tipo_item_id,
+            "cantidad": self.cantidad,
+            "precio_unitario": self.precio_unitario
+        }

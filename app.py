@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify
 from models import db, Pais, Region, Comuna, Rol, Beneficio, User, Producto, CategoriaProducto, ComboMenu, Cafeteria, TipoItem, Venta, DetalleVenta
 from flask_migrate import Migrate
@@ -165,33 +166,93 @@ def delete_beneficio(id):
     db.session.commit()
     return jsonify({'message': 'Beneficio deleted'}), 200
 
+# CRUD para User
+@app.route('/user', methods=['POST'])
+def create_user():
+    data = request.get_json()
+    user = User(**data)
+    db.session.add(user)
+    db.session.commit()
+    return jsonify(user.serialize()), 201
+
+@app.route('/user/<int:id>', methods=['GET'])
+def get_user(id):
+    user = User.query.get(id)
+    return jsonify(user.serialize()), 200 if user else 404
+
+@app.route('/user/<int:id>', methods=['PUT'])
+def update_user(id):
+    user = User.query.get(id)
+    data = request.get_json()
+    for key, value in data.items():
+        setattr(user, key, value)
+    db.session.commit()
+    return jsonify(user.serialize()), 200
+
+@app.route('/user/<int:id>', methods=['DELETE'])
+def delete_user(id):
+    user = User.query.get(id)
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({'message': 'User deleted'}), 200
+
+# CRUD para Producto
+@app.route('/producto', methods=['POST'])
+def create_producto():
+    data = request.get_json()
+    producto = Producto(**data)
+    db.session.add(producto)
+    db.session.commit()
+    return jsonify(producto.serialize()), 201
+
+@app.route('/producto/<int:id>', methods=['GET'])
+def get_producto(id):
+    producto = Producto.query.get(id)
+    return jsonify(producto.serialize()), 200 if producto else 404
+
+@app.route('/producto/<int:id>', methods=['PUT'])
+def update_producto(id):
+    producto = Producto.query.get(id)
+    data = request.get_json()
+    for key, value in data.items():
+        setattr(producto, key, value)
+    db.session.commit()
+    return jsonify(producto.serialize()), 200
+
+@app.route('/producto/<int:id>', methods=['DELETE'])
+def delete_producto(id):
+    producto = Producto.query.get(id)
+    db.session.delete(producto)
+    db.session.commit()
+    return jsonify({'message': 'Producto deleted'}), 200
+
 # CRUD para CategoriaProducto
 @app.route('/categoria_producto', methods=['POST'])
 def create_categoria_producto():
     data = request.get_json()
-    categoria_producto = CategoriaProducto(**data)
-    db.session.add(categoria_producto)
+    categoria = CategoriaProducto(**data)
+    db.session.add(categoria)
     db.session.commit()
-    return jsonify(categoria_producto.serialize()), 201
+    return jsonify(categoria.serialize()), 201
 
 @app.route('/categoria_producto/<int:id>', methods=['GET'])
 def get_categoria_producto(id):
-    categoria_producto = CategoriaProducto.query.get(id)
-    return jsonify(categoria_producto.serialize()), 200 if categoria_producto else 404
+    categoria = CategoriaProducto.query.get(id)
+    return jsonify(categoria.serialize()), 200 if categoria else 404
 
 @app.route('/categoria_producto/<int:id>', methods=['PUT'])
 def update_categoria_producto(id):
-    categoria_producto = CategoriaProducto.query.get(id)
+    categoria = CategoriaProducto.query.get(id)
     data = request.get_json()
     for key, value in data.items():
-        setattr(categoria_producto, key, value)
+        setattr(categoria, key, value)
     db.session.commit()
-    return jsonify(categoria_producto.serialize()), 200
+    return jsonify(categoria.serialize()), 200
 
 @app.route('/categoria_producto/<int:id>', methods=['DELETE'])
 def delete_categoria_producto(id):
-    categoria_producto = CategoriaProducto.query.get(id)
-    db.session.delete(categoria_producto)
+    categoria = CategoriaProducto.query.get(id)
+    db.session.delete(categoria)
     db.session.commit()
     return jsonify({'message': 'CategoriaProducto deleted'}), 200
 
@@ -199,29 +260,29 @@ def delete_categoria_producto(id):
 @app.route('/combo_menu', methods=['POST'])
 def create_combo_menu():
     data = request.get_json()
-    combo_menu = ComboMenu(**data)
-    db.session.add(combo_menu)
+    combo = ComboMenu(**data)
+    db.session.add(combo)
     db.session.commit()
-    return jsonify(combo_menu.serialize()), 201
+    return jsonify(combo.serialize()), 201
 
 @app.route('/combo_menu/<int:id>', methods=['GET'])
 def get_combo_menu(id):
-    combo_menu = ComboMenu.query.get(id)
-    return jsonify(combo_menu.serialize()), 200 if combo_menu else 404
+    combo = ComboMenu.query.get(id)
+    return jsonify(combo.serialize()), 200 if combo else 404
 
 @app.route('/combo_menu/<int:id>', methods=['PUT'])
 def update_combo_menu(id):
-    combo_menu = ComboMenu.query.get(id)
+    combo = ComboMenu.query.get(id)
     data = request.get_json()
     for key, value in data.items():
-        setattr(combo_menu, key, value)
+        setattr(combo, key, value)
     db.session.commit()
-    return jsonify(combo_menu.serialize()), 200
+    return jsonify(combo.serialize()), 200
 
 @app.route('/combo_menu/<int:id>', methods=['DELETE'])
 def delete_combo_menu(id):
-    combo_menu = ComboMenu.query.get(id)
-    db.session.delete(combo_menu)
+    combo = ComboMenu.query.get(id)
+    db.session.delete(combo)
     db.session.commit()
     return jsonify({'message': 'ComboMenu deleted'}), 200
 
@@ -254,6 +315,36 @@ def delete_cafeteria(id):
     db.session.delete(cafeteria)
     db.session.commit()
     return jsonify({'message': 'Cafeteria deleted'}), 200
+
+# CRUD para TipoItem
+@app.route('/tipo_item', methods=['POST'])
+def create_tipo_item():
+    data = request.get_json()
+    tipo_item = TipoItem(**data)
+    db.session.add(tipo_item)
+    db.session.commit()
+    return jsonify(tipo_item.serialize()), 201
+
+@app.route('/tipo_item/<int:id>', methods=['GET'])
+def get_tipo_item(id):
+    tipo_item = TipoItem.query.get(id)
+    return jsonify(tipo_item.serialize()), 200 if tipo_item else 404
+
+@app.route('/tipo_item/<int:id>', methods=['PUT'])
+def update_tipo_item(id):
+    tipo_item = TipoItem.query.get(id)
+    data = request.get_json()
+    for key, value in data.items():
+        setattr(tipo_item, key, value)
+    db.session.commit()
+    return jsonify(tipo_item.serialize()), 200
+
+@app.route('/tipo_item/<int:id>', methods=['DELETE'])
+def delete_tipo_item(id):
+    tipo_item = TipoItem.query.get(id)
+    db.session.delete(tipo_item)
+    db.session.commit()
+    return jsonify({'message': 'TipoItem deleted'}), 200
 
 # CRUD para Venta
 @app.route('/venta', methods=['POST'])
@@ -315,5 +406,6 @@ def delete_detalle_venta(id):
     db.session.commit()
     return jsonify({'message': 'DetalleVenta deleted'}), 200
 
+# Ejecución del servidor local
 if __name__ == '__main__':
     app.run(host='localhost', port=5000, debug=True)
