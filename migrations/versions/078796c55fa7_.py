@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 3d3a5a9c6bd6
+Revision ID: 078796c55fa7
 Revises: 
-Create Date: 2024-09-11 15:02:09.884077
+Create Date: 2024-09-11 15:10:38.092085
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '3d3a5a9c6bd6'
+revision = '078796c55fa7'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -62,13 +62,6 @@ def upgrade():
     sa.Column('nombre', sa.String(length=100), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('producto',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('nombre', sa.String(length=100), nullable=False),
-    sa.Column('precio', sa.Integer(), nullable=False),
-    sa.Column('stock', sa.Integer(), nullable=False),
-    sa.PrimaryKeyConstraint('id')
-    )
     op.create_table('rol',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('nombre', sa.String(length=50), nullable=False),
@@ -89,16 +82,6 @@ def upgrade():
     sa.Column('comentarios', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('calificacion_producto',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('cliente_rut', sa.String(length=12), nullable=False),
-    sa.Column('producto_id', sa.Integer(), nullable=False),
-    sa.Column('calificacion', sa.Float(), nullable=False),
-    sa.Column('fecha', sa.Date(), nullable=False),
-    sa.ForeignKeyConstraint(['cliente_rut'], ['cliente.rut'], ),
-    sa.ForeignKeyConstraint(['producto_id'], ['producto.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
     op.create_table('detalle_venta',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('venta_id', sa.Integer(), nullable=False),
@@ -107,20 +90,25 @@ def upgrade():
     sa.ForeignKeyConstraint(['venta_id'], ['venta.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('favoritos',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('cliente_rut', sa.String(length=12), nullable=False),
-    sa.Column('producto_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['cliente_rut'], ['cliente.rut'], ),
-    sa.ForeignKeyConstraint(['producto_id'], ['producto.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
     op.create_table('historial_pedidos',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('cliente_rut', sa.String(length=12), nullable=False),
     sa.Column('venta_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['cliente_rut'], ['cliente.rut'], ),
     sa.ForeignKeyConstraint(['venta_id'], ['venta.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('producto',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('nombre', sa.String(length=100), nullable=False),
+    sa.Column('precio', sa.Integer(), nullable=False),
+    sa.Column('stock', sa.Integer(), nullable=False),
+    sa.Column('categoria_producto_id', sa.Integer(), nullable=False),
+    sa.Column('cafeteria_id', sa.Integer(), nullable=False),
+    sa.Column('tipo_item_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['cafeteria_id'], ['cafeteria.id'], ),
+    sa.ForeignKeyConstraint(['categoria_producto_id'], ['categoria_producto.id'], ),
+    sa.ForeignKeyConstraint(['tipo_item_id'], ['tipo_item.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('region',
@@ -146,6 +134,16 @@ def upgrade():
     sa.UniqueConstraint('correo'),
     sa.UniqueConstraint('usuario')
     )
+    op.create_table('calificacion_producto',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('cliente_rut', sa.String(length=12), nullable=False),
+    sa.Column('producto_id', sa.Integer(), nullable=False),
+    sa.Column('calificacion', sa.Float(), nullable=False),
+    sa.Column('fecha', sa.Date(), nullable=False),
+    sa.ForeignKeyConstraint(['cliente_rut'], ['cliente.rut'], ),
+    sa.ForeignKeyConstraint(['producto_id'], ['producto.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('comuna',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('nombre', sa.String(length=100), nullable=False),
@@ -153,22 +151,30 @@ def upgrade():
     sa.ForeignKeyConstraint(['region_id'], ['region.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('favoritos',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('cliente_rut', sa.String(length=12), nullable=False),
+    sa.Column('producto_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['cliente_rut'], ['cliente.rut'], ),
+    sa.ForeignKeyConstraint(['producto_id'], ['producto.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     # ### end Alembic commands ###
 
 
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_table('favoritos')
     op.drop_table('comuna')
+    op.drop_table('calificacion_producto')
     op.drop_table('usuario')
     op.drop_table('region')
+    op.drop_table('producto')
     op.drop_table('historial_pedidos')
-    op.drop_table('favoritos')
     op.drop_table('detalle_venta')
-    op.drop_table('calificacion_producto')
     op.drop_table('venta')
     op.drop_table('tipo_item')
     op.drop_table('rol')
-    op.drop_table('producto')
     op.drop_table('pais')
     op.drop_table('mesa')
     op.drop_table('combo_menu')
