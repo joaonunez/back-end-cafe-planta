@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, ForeignKey, Integer, String, Date, Time, Table, Text, Float, Boolean
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, Table, Text, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -168,6 +168,9 @@ class Producto(db.Model):
     nombre = Column(String(100), nullable=False)
     precio = Column(Integer, nullable=False)
     stock = Column(Integer, nullable=False, default=0)
+
+    # Nueva columna para almacenar la calificación promedio
+    calificacion = Column(Float, nullable=True, default=0.0)  # Calificación promedio del producto
     
     # Relaciones con otras tablas
     categoria_producto_id = Column(Integer, ForeignKey('categoria_producto.id'), nullable=False)
@@ -179,8 +182,6 @@ class Producto(db.Model):
     tipo_item_id = Column(Integer, ForeignKey('tipo_item.id'), nullable=False)
     tipo_item = relationship('TipoItem')
 
-    calificaciones = relationship('CalificacionProducto', backref='producto')
-
     def serializar(self):
         return {
             "id": self.id,
@@ -190,6 +191,7 @@ class Producto(db.Model):
             "categoria_producto_id": self.categoria_producto_id,
             "cafeteria_id": self.cafeteria_id,
             "tipo_item_id": self.tipo_item_id,
+            "promedio_calificacion": self.calificacion,  # Retornar la calificación almacenada
         }
 
 # Clase ComboMenu
@@ -198,13 +200,29 @@ class ComboMenu(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
     nombre = Column(String(100), nullable=False)
     precio = Column(Integer, nullable=False)
+    cafeteria_id = Column(Integer, ForeignKey('cafeteria.id'), nullable=False)
+    tipo_item_id = Column(Integer, ForeignKey('tipo_item.id'), nullable=False)
+
+    cafeteria = relationship('Cafeteria')
+    tipo_item = relationship('TipoItem')
+
+    productos = relationship('Producto', secondary='detalle_combo_menu', backref='combos')
 
     def serializar(self):
         return {
             "id": self.id,
             "nombre": self.nombre,
             "precio": self.precio,
+            "cafeteria_id": self.cafeteria_id,
+            "tipo_item_id": self.tipo_item_id,
+            "productos": [producto.serializar() for producto in self.productos]
         }
+
+# Tabla intermedia ComboMenu-Producto (Muchos a muchos)
+detalle_combo_menu = Table('detalle_combo_menu', db.Model.metadata,
+    Column('combo_menu_id', Integer, ForeignKey('combo_menu.id'), primary_key=True),
+    Column('producto_id', Integer, ForeignKey('producto.id'), primary_key=True)
+)
 
 # Clase Cafetería
 class Cafeteria(db.Model):
@@ -212,12 +230,16 @@ class Cafeteria(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
     nombre = Column(String(100), nullable=False)
     direccion = Column(String(255), nullable=False)
+    comuna_id = Column(Integer, ForeignKey('comuna.id'), nullable=False)
+    
+    comuna = relationship('Comuna', backref='cafeterias')
 
     def serializar(self):
         return {
             "id": self.id,
             "nombre": self.nombre,
             "direccion": self.direccion,
+            "comuna_id": self.comuna_id,
         }
 
 # Clase TipoItem
@@ -238,32 +260,48 @@ class Mesa(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
     numero = Column(Integer, nullable=False)
     qr_code = Column(String(255), nullable=False)
+    cafeteria_id = Column(Integer, ForeignKey('cafeteria.id'), nullable=False)
+
+    cafeteria = relationship('Cafeteria')
 
     def serializar(self):
         return {
             "id": self.id,
             "numero": self.numero,
             "qr_code": self.qr_code,
+            "cafeteria_id": self.cafeteria_id
         }
 
 # Clase Venta
 class Venta(db.Model):
     __tablename__ = 'venta'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    fecha = Column(Date, nullable=False, default=datetime.now)
-    hora = Column(Time, nullable=False)
+    fecha = Column(DateTime, nullable=False, default=datetime.now)  # Usamos DateTime para incluir fecha y hora
     monto_total = Column(Integer, nullable=False)
     estado = Column(String(50), nullable=False, default="pendiente")
     comentarios = Column(Text, nullable=True)
+    
+    cliente_rut = Column(String(12), ForeignKey('cliente.rut'), nullable=False)
+    cafeteria_id = Column(Integer, ForeignKey('cafeteria.id'), nullable=False)
+    mesero_rut = Column(String(12), ForeignKey('usuario.rut'), nullable=True)
+    mesa_id = Column(Integer, ForeignKey('mesa.id'), nullable=True)
+
+    cliente = relationship('Cliente')
+    cafeteria = relationship('Cafeteria')
+    mesero = relationship('Usuario')
+    mesa = relationship('Mesa')
 
     def serializar(self):
         return {
             "id": self.id,
             "fecha": self.fecha,
-            "hora": self.hora,
             "monto_total": self.monto_total,
             "estado": self.estado,
             "comentarios": self.comentarios,
+            "cliente_rut": self.cliente_rut,
+            "cafeteria_id": self.cafeteria_id,
+            "mesero_rut": self.mesero_rut,
+            "mesa_id": self.mesa_id,
         }
 
 # Clase DetalleVenta
@@ -273,6 +311,10 @@ class DetalleVenta(db.Model):
     venta_id = Column(Integer, ForeignKey('venta.id'), nullable=False)
     cantidad = Column(Integer, nullable=False)
     precio_unitario = Column(Integer, nullable=False)
+    tipo_item_id = Column(Integer, ForeignKey('tipo_item.id'), nullable=False)
+    item_id = Column(Integer, nullable=False)
+
+    tipo_item = relationship('TipoItem')
 
     def serializar(self):
         return {
@@ -280,6 +322,8 @@ class DetalleVenta(db.Model):
             "venta_id": self.venta_id,
             "cantidad": self.cantidad,
             "precio_unitario": self.precio_unitario,
+            "tipo_item_id": self.tipo_item_id,
+            "item_id": self.item_id,
         }
 
 # Clase CalificacionProducto
@@ -289,7 +333,7 @@ class CalificacionProducto(db.Model):
     cliente_rut = Column(String(12), ForeignKey('cliente.rut'), nullable=False)
     producto_id = Column(Integer, ForeignKey('producto.id'), nullable=False)
     calificacion = Column(Float, nullable=False)
-    fecha = Column(Date, nullable=False, default=datetime.now)
+    fecha = Column(DateTime, nullable=False, default=datetime.now)
 
     def serializar(self):
         return {
