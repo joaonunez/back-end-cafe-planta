@@ -135,20 +135,6 @@ class Favoritos(db.Model):
             "producto_id": self.producto_id,
         }
 
-# Clase HistorialPedidos
-class HistorialPedidos(db.Model):
-    __tablename__ = 'historial_pedidos'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    cliente_rut = Column(String(12), ForeignKey('cliente.rut'), nullable=False)
-    venta_id = Column(Integer, ForeignKey('venta.id'), nullable=False)
-
-    def serializar(self):
-        return {
-            "id": self.id,
-            "cliente_rut": self.cliente_rut,
-            "venta_id": self.venta_id,
-        }
-
 # Clase CategoriaProducto
 class CategoriaProducto(db.Model):
     __tablename__ = 'categoria_producto'
@@ -168,9 +154,6 @@ class Producto(db.Model):
     nombre = Column(String(100), nullable=False)
     precio = Column(Integer, nullable=False)
     stock = Column(Integer, nullable=False, default=0)
-
-    # Nueva columna para almacenar la calificación promedio
-    calificacion = Column(Float, nullable=True, default=0.0)  # Calificación promedio del producto
     
     # Relaciones con otras tablas
     categoria_producto_id = Column(Integer, ForeignKey('categoria_producto.id'), nullable=False)
@@ -191,7 +174,6 @@ class Producto(db.Model):
             "categoria_producto_id": self.categoria_producto_id,
             "cafeteria_id": self.cafeteria_id,
             "tipo_item_id": self.tipo_item_id,
-            "promedio_calificacion": self.calificacion,  # Retornar la calificación almacenada
         }
 
 # Clase ComboMenu
