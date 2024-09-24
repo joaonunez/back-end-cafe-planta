@@ -1,6 +1,6 @@
-from flask import Blueprint, jsonify
-from models import Usuario
-from models import db
+from flask import Blueprint, request, jsonify
+from models.base import db  # Importar db desde base.py
+from models.usuario import Usuario  # Importar el modelo Usuario
 
 usuario = Blueprint("usuario", __name__, url_prefix="/camping")
 

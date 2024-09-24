@@ -1,11 +1,10 @@
-from flask import Blueprint
-from models import Beneficio
-from flask import request, jsonify
-from models import db
+from flask import Blueprint, request, jsonify
+from models.base import db  # Importar db desde base.py
+from models.beneficio import Beneficio  # Importar el modelo Beneficio
 
 beneficio = Blueprint("beneficio", __name__, url_prefix="/camping")
 
 @beneficio.route("/beneficio", methods=["GET"])
 def get_beneficios():
     beneficios = Beneficio.query.all()
-    return jsonify([beneficio.serialize() for beneficio in beneficios])
+    return jsonify([beneficio.serializar() for beneficio in beneficios])
