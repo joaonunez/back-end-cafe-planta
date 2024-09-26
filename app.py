@@ -1,4 +1,5 @@
 #importacion de depéndecias
+import os
 from flask import Flask, request, jsonify
 from extensions import db, migrate, cors
 from models import *  # Importar todos los modelos desde models/__init__.py
@@ -7,8 +8,12 @@ from routes import beneficio, cafeteria, calificacion_producto, categoria_produc
 app = Flask(__name__)
 
 # Configuración de base de datos
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://admin:zgVT4RIehfZuulmBOhqQLDrR9BtZPrks@dpg-crqmshrv2p9s73ea70g0-a.oregon-postgres.render.com:5432/cafeplanta"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+    "DATABASE_URL", 
+    "mysql+pymysql://root:kYkDChFJJaDcDvfMISLvVrnJzyDdFcPw@junction.proxy.rlwy.net:26699/railway"
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 
 ##para conectarse en DBeaver: jdbc:postgresql://dpg-crqmshrv2p9s73ea70g0-a.oregon-postgres.render.com:5432/cafeplanta
 

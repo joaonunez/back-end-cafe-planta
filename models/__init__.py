@@ -18,3 +18,4 @@ from .rol import Rol
 from .tipo_item import TipoItem
 from .usuario import Usuario
 from .venta import Venta
+from .detalle_combo_menu import detalle_combo_menu

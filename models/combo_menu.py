@@ -1,9 +1,8 @@
 from .base import db
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
+from .detalle_combo_menu import detalle_combo_menu  # Importar la tabla intermedia
 
-
-# Clase ComboMenu
 class ComboMenu(db.Model):
     __tablename__ = 'combo_menu'
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -15,7 +14,8 @@ class ComboMenu(db.Model):
     cafeteria = relationship('Cafeteria')
     tipo_item = relationship('TipoItem')
 
-    productos = relationship('Producto', secondary='detalle_combo_menu', backref='combos')
+    # Cambiar el nombre del backref para evitar conflictos
+    productos = relationship('Producto', secondary=detalle_combo_menu, backref='combo_menus')
 
     def serializar(self):
         return {
