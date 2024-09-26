@@ -21,6 +21,9 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 migrate.init_app(app, db)
 cors.init_app(app)
+@app.route('/')
+def index():
+    return "API is running"
 
 # ------------------------------------
 # ROUTES

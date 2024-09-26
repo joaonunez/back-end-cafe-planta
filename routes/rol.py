@@ -5,12 +5,12 @@ from models.rol import Rol  # Importar el modelo Rol
 rol = Blueprint("rol", __name__, url_prefix="/rol")
 
 
-@rol.route("/view-roles", methods=["GET"])
+@rol.route("/ver-roles", methods=["GET"])
 def get_roles():
     roles = Rol.query.all()
     return jsonify([rol.serializar() for rol in roles])
 
-@rol.route("/add-role", methods=["POST"])
+@rol.route("/añadir-rol", methods=["POST"])
 def create_rol():
     data = request.get_json()  # Obtener los datos JSON del cuerpo de la solicitud
     print("Datos recibidos:", data)  # Agregar esto para ver qué datos llegan
