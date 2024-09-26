@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+Pipfile.lock
+.DS_Store
+.env
+.git
+.idea
+.vscode
+.pytest_cache/
+migrations/
