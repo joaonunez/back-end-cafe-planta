@@ -42,6 +42,3 @@ app.register_blueprint(rol)
 app.register_blueprint(tipo_item)
 app.register_blueprint(usuario)
 app.register_blueprint(venta)
-
-if __name__ == "__main__": 
-    app.run(host="0.0.0.0", port=3001, debug=True)
