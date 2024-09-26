@@ -10,6 +10,8 @@ app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://admin:zgVT4RIehfZuulmBOhqQLDrR9BtZPrks@dpg-crqmshrv2p9s73ea70g0-a.oregon-postgres.render.com:5432/cafeplanta"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+##para conectarse en DBeaver: jdbc:postgresql://dpg-crqmshrv2p9s73ea70g0-a.oregon-postgres.render.com:5432/cafeplanta
+
 # Inicialización de extensiones con la aplicación Flask
 db.init_app(app)
 migrate.init_app(app, db)
