@@ -1,82 +1,40 @@
 #importacion de depéndecias
 from flask import Flask, request, jsonify
-from models.base import db  # Modificación para importar db desde base.py
-from flask_migrate import Migrate
-from flask_cors import CORS
-
-# Importar todos los modelos desde models/__init__.py
-from models import *
-
-# Importar todas las rutas desde routes/__init__.py
+from extensions import db, migrate, cors
+from models import *  # Importar todos los modelos desde models/__init__.py
 from routes import beneficio, cafeteria, calificacion_producto, categoria_producto, cliente, combo_menu, comuna, detalle_venta, favoritos, mesa, pais, producto, region, rol, tipo_item, usuario, venta
 
 app = Flask(__name__)
 
-#configuracion de base de datos:
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://cafe_planta_user:X94KTKqoqHlkfhE7s588ainlCB9zBCQY@dpgcrp9ir2j1k6c73c28b50-a.oregon-postgres.render.com/cafe_planta"
+# Configuración de base de datos
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://admin:zgVT4RIehfZuulmBOhqQLDrR9BtZPrks@dpg-crqmshrv2p9s73ea70g0-a.oregon-postgres.render.com:5432/cafeplanta"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# Inicialización de la base de datos y migración
+# Inicialización de extensiones con la aplicación Flask
 db.init_app(app)
-Migrate(app, db)
-
-# Habilitar CORS
-CORS(app)
+migrate.init_app(app, db)
+cors.init_app(app)
 
 # ------------------------------------
 # ROUTES
 # ------------------------------------
-##BENEFICIO:
 app.register_blueprint(beneficio)
-
-##CAFETERIA:
 app.register_blueprint(cafeteria)
-
-##CALIFICACION PRODUCTO:
 app.register_blueprint(calificacion_producto)
-
-##CATEGORIA PRODUCTO:
 app.register_blueprint(categoria_producto)
-
-##CLIENTE:
 app.register_blueprint(cliente)
-
-##COMBO MENU:
 app.register_blueprint(combo_menu)
-
-##COMUNA:
 app.register_blueprint(comuna)
-
-##DETALLE VENTA:
 app.register_blueprint(detalle_venta)
-
-##FAVORITOS:
 app.register_blueprint(favoritos)
-
-##MESA:
 app.register_blueprint(mesa)
-
-##PAIS:
 app.register_blueprint(pais)
-
-##PRODUCTO:
 app.register_blueprint(producto)
-
-##REGION:
 app.register_blueprint(region)
-
-##ROL:
 app.register_blueprint(rol)
-
-##TIPO ITEM:
 app.register_blueprint(tipo_item)
-
-##USUARIO:
 app.register_blueprint(usuario)
-
-##VENTA:
 app.register_blueprint(venta)
-
 
 if __name__ == "__main__": 
     app.run(host="0.0.0.0", port=3001, debug=True)
