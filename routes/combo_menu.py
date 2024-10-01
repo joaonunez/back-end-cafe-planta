@@ -1,10 +1,10 @@
-from flask import Blueprint, request, jsonify
-from models.base import db  # Importar db desde base.py
-from models.combo_menu import ComboMenu  # Importar el modelo ComboMenu
+from flask import Blueprint, jsonify
+from models.base import db
+from models.combo_menu import ComboMenu
 
-combo_menu = Blueprint("combo_menu", __name__, url_prefix="/camping")
+combo_menu = Blueprint("combo_menu", __name__, url_prefix="/combo_menu")
 
-@combo_menu.route("/combo_menu", methods=["GET"])
-def get_combos():
+@combo_menu.route("/", methods=["GET"])
+def get_combo_menus():
     combos = ComboMenu.query.all()
-    return jsonify([combo.serializar() for combo in combos])
+    return jsonify([combo.serialize() for combo in combos])
