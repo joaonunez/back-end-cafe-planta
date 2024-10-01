@@ -1,7 +1,7 @@
 from .base import db
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-from .combo_menu_detail import detalle_combo_menu  # Importing the intermediate table
+from .combo_menu_detail import combo_menu_detail  # Actualización de la tabla intermedia
 
 class Product(db.Model):
     __tablename__ = 'product'
@@ -19,7 +19,7 @@ class Product(db.Model):
     item_type_id = Column(Integer, ForeignKey('item_type.id'), nullable=False)
     item_type = relationship('ItemType')
 
-    combos = relationship('ComboMenu', secondary=detalle_combo_menu, backref='products_in_combo')
+    combos = relationship('ComboMenu', secondary=combo_menu_detail, backref='products_in_combo')
 
     def serialize(self):
         return {
