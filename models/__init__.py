@@ -21,3 +21,5 @@ from .user import User
 from .sale import Sale
 from .combo_menu_detail import combo_menu_detail
 from .combo_menu import ComboMenu  
+from .cart import Cart
+from .cart_item import CartItem

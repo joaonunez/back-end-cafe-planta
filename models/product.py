@@ -9,17 +9,18 @@ class Product(db.Model):
     name = Column(String(100), nullable=False)
     price = Column(Integer, nullable=False)
     stock = Column(Integer, nullable=False, default=0)
-    
+
     product_category_id = Column(Integer, ForeignKey('product_category.id'), nullable=False)
     product_category = relationship('ProductCategory', backref='products')
-    
+
     cafe_id = Column(Integer, ForeignKey('cafe.id'), nullable=False)
     cafe = relationship('Cafe', backref='products')
-    
+
     item_type_id = Column(Integer, ForeignKey('item_type.id'), nullable=False)
     item_type = relationship('ItemType')
 
-    combos = relationship('ComboMenu', secondary=combo_menu_detail, backref='products_in_combo')
+    # Modificación para evitar el solapamiento
+    combos = relationship('ComboMenu', secondary=combo_menu_detail, backref='products_in_combo', overlaps="combo_menus,products")
 
     def serialize(self):
         return {

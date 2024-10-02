@@ -30,7 +30,11 @@ app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)  # Duración del to
 # Inicialización de extensiones con la aplicación Flask
 db.init_app(app)
 migrate.init_app(app, db)
-cors.init_app(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
+cors.init_app(app, resources={r"/*": {"origins": "http://localhost:3000"}},
+              supports_credentials=True,
+              allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
+              expose_headers="Authorization")
+
 bcrypt.init_app(app)
 jwt.init_app(app)
 
@@ -40,13 +44,12 @@ def refresh_expiring_jwts(response):
     try:
         exp_timestamp = get_jwt()["exp"]
         now = datetime.now(timezone.utc)
-        # Verificar si el token expira en 15 minutos
         if datetime.timestamp(now + timedelta(minutes=15)) > exp_timestamp:
             access_token = create_access_token(identity=get_jwt_identity())
             set_access_cookies(response, access_token)
-            return response
     except (RuntimeError, KeyError):
-        return response
+        pass  # Ignorar si no hay token o no se puede actualizar
+    return response
 @app.errorhandler(Unauthorized)
 def handle_unauthorized(e):
     return jsonify({"error": "Invalid or expired token, please log in again."}), 401

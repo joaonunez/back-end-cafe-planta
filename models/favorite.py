@@ -10,21 +10,26 @@ class Favorite(db.Model):
 
     # Polimorfismo: el item puede ser un Product o un ComboMenu
     item_id = Column(Integer, nullable=False)  # ID del ítem (producto o combo)
-    item_type = Column(String(50), nullable=False)  # Tipo de ítem ('product' o 'combo_menu')
+    item_type_id = Column(Integer, ForeignKey('item_type.id'), nullable=False)  # Referencia a ItemType
+
+    # Relación con ItemType
+    item_type = db.relationship('ItemType')
 
     def serialize(self):
+        item = self.get_item()  # Obtenemos el objeto producto o combo usando el método get_item
         return {
             "id": self.id,
-            "customer_rut": self.customer_rut,
             "item_id": self.item_id,
-            "item_type": self.item_type
+            "item_name": item.name if item else None,  # Aquí accedemos al nombre del producto o combo
+            "item_type_id": self.item_type_id  # Aseguramos que el front-end sepa si es producto o combo
         }
 
-    # Método para asociar el ítem según su tipo
+
     def get_item(self):
-        if self.item_type == 'product':
+        if self.item_type_id == 2:  # Si es un producto
             return Product.query.get(self.item_id)
-        elif self.item_type == 'combo_menu':
+        elif self.item_type_id == 1:  # Si es un combo
             return ComboMenu.query.get(self.item_id)
-        else:
-            return None
+        return None
+
+
