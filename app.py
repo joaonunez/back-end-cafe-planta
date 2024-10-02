@@ -32,7 +32,7 @@ db.init_app(app)
 migrate.init_app(app, db)
 
 # CORS: Configurar correctamente el dominio de tu frontend
-cors.init_app(app, resources={r"/*": {"origins": os.getenv("FRONTEND_ORIGIN", "https://tu-dominio.com")}},
+cors.init_app(app, resources={r"/*": {"origins": os.getenv("FRONTEND_ORIGIN", "https://cafe-planta-front-end-git-master-joaonunezs-projects.vercel.app")}},
               supports_credentials=True,
               allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
               expose_headers="Authorization")
