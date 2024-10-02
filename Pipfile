@@ -12,6 +12,9 @@ gunicorn = "*"
 psycopg2-binary = "*"
 pymysql = "*"
 cryptography = "*"
+flask-jwt-extended = "*"
+bcrypt = "*"
+flask-bcrypt = "*"
 
 [dev-packages]
 
