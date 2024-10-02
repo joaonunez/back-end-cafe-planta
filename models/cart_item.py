@@ -1,4 +1,5 @@
 from .base import db
+from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, ForeignKey
 
 class CartItem(db.Model):
