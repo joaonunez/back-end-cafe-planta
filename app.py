@@ -1,5 +1,7 @@
 # Importación de dependencias
 import os
+import pymysql
+pymysql.install_as_MySQLdb()
 from flask import Flask, request, jsonify
 from extensions import db, migrate, cors, bcrypt, jwt
 from models import *  # Importar todos los modelos desde models/__init__.py
