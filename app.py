@@ -1,11 +1,11 @@
 # Importación de dependencias
 import os
 from flask import Flask, request, jsonify
-from extensions import db, migrate, cors
+from extensions import db, migrate, cors, bcrypt, jwt
 from models import *  # Importar todos los modelos desde models/__init__.py
-from routes import benefit, cafe, product_rating, product_category, customer, combo_menu, city, sale_detail, favorite, dining_area, country, product, state, role, item_type, user, sale
+from routes import benefit, benefit_user, cafe, product_rating, product_category, customer, combo_menu, combo_menu_detail, city, sale_detail, favorite, dining_area, country, product, state, role, item_type, user, sale
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, set_access_cookies
-
+from werkzeug.exceptions import Unauthorized
 from datetime import datetime, timedelta, timezone
 app = Flask(__name__)
 
@@ -31,6 +31,8 @@ app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)  # Duración del to
 db.init_app(app)
 migrate.init_app(app, db)
 cors.init_app(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
+bcrypt.init_app(app)
+jwt.init_app(app)
 
 # Middleware para renovar el token automáticamente si está a punto de expirar
 @app.after_request
@@ -45,17 +47,22 @@ def refresh_expiring_jwts(response):
             return response
     except (RuntimeError, KeyError):
         return response
+@app.errorhandler(Unauthorized)
+def handle_unauthorized(e):
+    return jsonify({"error": "Invalid or expired token, please log in again."}), 401
 
 
 # ------------------------------------
 # ROUTES
 # ------------------------------------
 app.register_blueprint(benefit)
+app.register_blueprint(benefit_user)
 app.register_blueprint(cafe)
 app.register_blueprint(product_rating)
 app.register_blueprint(product_category)
 app.register_blueprint(customer)
 app.register_blueprint(combo_menu)
+app.register_blueprint(combo_menu_detail)
 app.register_blueprint(city)
 app.register_blueprint(sale_detail)
 app.register_blueprint(favorite)
