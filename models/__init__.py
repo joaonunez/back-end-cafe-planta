@@ -3,6 +3,7 @@ from .base import db
 
 # Importa todos los modelos
 from .benefit import Benefit
+from .benefit_user import BenefitUser
 from .cafe import Cafe
 from .product_rating import ProductRating
 from .product_category import ProductCategory
@@ -19,3 +20,6 @@ from .item_type import ItemType
 from .user import User
 from .sale import Sale
 from .combo_menu_detail import combo_menu_detail
+from .combo_menu import ComboMenu  
+from .cart import Cart
+from .cart_item import CartItem
