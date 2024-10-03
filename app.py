@@ -67,6 +67,11 @@ def refresh_expiring_jwts(response):
 def handle_unauthorized(e):
     return jsonify({"error": "Invalid or expired token, please log in again."}), 401
 
+# Ruta para saludar
+@app.route('/')
+def hello():
+    return '<h1>Hola, soy la API de Café Planta</h1>'
+
 # ------------------------------------
 # ROUTES
 # ------------------------------------
@@ -89,3 +94,6 @@ app.register_blueprint(role)
 app.register_blueprint(item_type)
 app.register_blueprint(user)
 app.register_blueprint(sale)
+
+if __name__ == '__main__':
+    app.run(debug=True)
