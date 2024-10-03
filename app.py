@@ -6,62 +6,35 @@ from flask import Flask, request, jsonify
 from extensions import db, migrate, cors, bcrypt, jwt
 from models import *  # Importar todos los modelos desde models/__init__.py
 from routes import benefit, benefit_user, cafe, product_rating, product_category, customer, combo_menu, combo_menu_detail, city, sale_detail, favorite, dining_area, country, product, state, role, item_type, user, sale
-from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, set_access_cookies
 from werkzeug.exceptions import Unauthorized
-from datetime import datetime, timedelta, timezone
-from flask_talisman import Talisman  # Seguridad extra opcional
+from datetime import timedelta
 
 app = Flask(__name__)
 
-# Configuración de base de datos (usando variable de entorno para mayor seguridad)
+# Configuración de base de datos
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
     "DATABASE_URL", 
     "mysql+pymysql://root:kYkDChFJJaDcDvfMISLvVrnJzyDdFcPw@junction.proxy.rlwy.net:26699/railway"
 )
-
-
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# Claves secretas (usando variables de entorno para producción)
-app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")  # Cambia esto a una variable segura en producción
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")  # Cambia esto a una variable segura en producción
+# Claves secretas
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "supersecretkey")  # Cambiar esto en producción
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "anothersecretkey")
 
-# Configuración de JWT para cookies
-app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
-app.config["JWT_ACCESS_COOKIE_PATH"] = "/"
-app.config["JWT_COOKIE_SECURE"] = True  # Asegurarse de que las cookies solo se envíen a través de HTTPS
-app.config["JWT_COOKIE_CSRF_PROTECT"] = True  # Habilitar protección CSRF
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)  # Duración del token de acceso
-app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)  # Duración del token de refresco
+# Configuración de JWT
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
+app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
 
-# Inicialización de extensiones con la aplicación Flask
+# Inicialización de extensiones
 db.init_app(app)
 migrate.init_app(app, db)
 
-# CORS: Configurar correctamente el dominio de tu frontend
-cors.init_app(app, resources={r"/*": {"origins": os.getenv("FRONTEND_ORIGIN", "https://cafe-planta-front-end-production.up.railway.app")}},
-              supports_credentials=True,
-              allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
-              expose_headers="Authorization")
+# CORS: Permitir el acceso desde tu frontend
+cors.init_app(app, resources={r"/*": {"origins": os.getenv("FRONTEND_ORIGIN", "https://cafe-planta-front-end-production.up.railway.app")}})
 
 bcrypt.init_app(app)
 jwt.init_app(app)
-
-# Seguridad extra con Talisman
-Talisman(app)  # Aplica políticas de seguridad como HTTPS, HSTS, etc.
-
-# Middleware para renovar el token automáticamente si está a punto de expirar
-@app.after_request
-def refresh_expiring_jwts(response):
-    try:
-        exp_timestamp = get_jwt()["exp"]
-        now = datetime.now(timezone.utc)
-        if datetime.timestamp(now + timedelta(minutes=15)) > exp_timestamp:
-            access_token = create_access_token(identity=get_jwt_identity())
-            set_access_cookies(response, access_token)
-    except (RuntimeError, KeyError):
-        pass  # Ignorar si no hay token o no se puede actualizar
-    return response
 
 # Manejo de errores de autenticación
 @app.errorhandler(Unauthorized)
