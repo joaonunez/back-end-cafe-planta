@@ -16,7 +16,7 @@ app = Flask(__name__)
 # Configuración de base de datos (usando variable de entorno para mayor seguridad)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
     "DATABASE_URL", 
-    "mysql+pymysql://root:kYkDChFJJaDcDvfMISLvVrnJzyDdFcPw@junction.proxy.rlwy.net:26699/railway"
+    "mysql://root:kYkDChFJJaDcDvfMISLvVrnJzyDdFcPw@junction.proxy.rlwy.net:26699/railway"
 )
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
