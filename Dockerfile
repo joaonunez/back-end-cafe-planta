@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir pipenv && pipenv install --deploy --ignore-pipfil
 COPY . /app
 
 # Exponer el puerto que utilizará la aplicación
-EXPOSE 5000
+EXPOSE $PORT
 
 # Comando para ejecutar la aplicación utilizando Gunicorn
-CMD ["pipenv", "run", "gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+CMD ["pipenv", "run", "gunicorn", "--bind", "0.0.0.0:$PORT", "app:app"]
