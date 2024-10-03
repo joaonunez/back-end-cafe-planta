@@ -30,8 +30,8 @@ app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
 db.init_app(app)
 migrate.init_app(app, db)
 
-# CORS: Permitir el acceso desde tu frontend
-cors.init_app(app, resources={r"/*": {"origins": os.getenv("FRONTEND_ORIGIN", "https://cafe-planta-front-end-production.up.railway.app")}})
+# CORS: Permitir el acceso desde cualquier origen
+cors.init_app(app)
 
 bcrypt.init_app(app)
 jwt.init_app(app)
