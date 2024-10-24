@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from models import Favorite, db, Product, ComboMenu
+from models import Favorite, Product, ComboMenu
+from extensions import db
 from models.favorite import Favorite
 from flask_jwt_extended import jwt_required, get_jwt_identity
 favorite = Blueprint("favorite", __name__, url_prefix="/favorite")

@@ -1,4 +1,7 @@
+from extensions import db
+
 # Importa todos los blueprints
+
 from .benefit import benefit
 from .benefit_user import benefit_user
 from .cafe import cafe

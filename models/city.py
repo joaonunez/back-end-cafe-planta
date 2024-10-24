@@ -1,4 +1,4 @@
-from .base import db
+from extensions import db
 from sqlalchemy import Column, Integer, String, ForeignKey
 
 class City(db.Model):

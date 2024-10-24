@@ -1,4 +1,5 @@
-from .base import db
+from extensions import db
+
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from .combo_menu_detail import combo_menu_detail  # Actualización de la tabla intermedia
@@ -9,6 +10,7 @@ class Product(db.Model):
     name = Column(String(100), nullable=False)
     price = Column(Integer, nullable=False)
     stock = Column(Integer, nullable=False, default=0)
+    image_url = Column(String(255))
 
     product_category_id = Column(Integer, ForeignKey('product_category.id'), nullable=False)
     product_category = relationship('ProductCategory', backref='products')
@@ -19,8 +21,8 @@ class Product(db.Model):
     item_type_id = Column(Integer, ForeignKey('item_type.id'), nullable=False)
     item_type = relationship('ItemType')
 
-    # Modificación para evitar el solapamiento
-    combos = relationship('ComboMenu', secondary=combo_menu_detail, backref='products_in_combo', overlaps="combo_menus,products")
+    # Establecer la relación con ComboMenu usando back_populates
+    combo_menus = relationship('ComboMenu', secondary=combo_menu_detail, back_populates='products')
 
     def serialize(self):
         return {
@@ -28,6 +30,7 @@ class Product(db.Model):
             "name": self.name,
             "price": self.price,
             "stock": self.stock,
+            "image_url": self.image_url,
             "product_category_id": self.product_category_id,
             "cafe_id": self.cafe_id,
             "item_type_id": self.item_type_id,

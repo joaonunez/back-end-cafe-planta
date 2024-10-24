@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify
-from models.base import db
+from extensions import db
+
 from models.product_rating import ProductRating
 
 product_rating = Blueprint("product_rating", __name__, url_prefix="/product_rating")

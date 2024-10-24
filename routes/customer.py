@@ -68,11 +68,11 @@ def login_customer():
     # Buscar al cliente por nombre de usuario
     customer = Customer.query.filter_by(username=username).first()
     if not customer:
-        return jsonify({"error": "Customer not found"}), 404
+        return jsonify({"error": "Cliente no encontrado"}), 404
     
     # Verificar la contraseña usando bcrypt de extensions
     if not bcrypt.check_password_hash(customer.password, password):
-        return jsonify({"error": "Invalid credentials"}), 401
+        return jsonify({"error": "Credenciales Invalidas"}), 401
     
     # Generar token de acceso con JWT usando el RUT del cliente
     access_token = create_access_token(identity=customer.rut)
@@ -92,3 +92,35 @@ def login_customer():
     
     # Devolver la respuesta con estado 200
     return response, 200
+
+@customer.route("/register-customer", methods=["POST"])
+def register_customer():
+    data = request.get_json()
+    
+    # Validar campos requeridos
+    if not all([data.get("rut"), data.get("name"), data.get("email"), data.get("username"), data.get("password")]):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    # Verificar si el email o username ya están en uso
+    if Customer.query.filter_by(email=data["email"]).first():
+        return jsonify({"error": f"Email {data['email']} already in use"}), 400
+
+    if Customer.query.filter_by(username=data["username"]).first():
+        return jsonify({"error": f"Username {data['username']} already in use"}), 400
+
+    # Encriptar la contraseña usando bcrypt
+    hashed_password = bcrypt.generate_password_hash(data["password"]).decode('utf-8')
+
+    # Crear nuevo cliente
+    new_customer = Customer(
+        rut=data["rut"],
+        name=data["name"],
+        email=data["email"],
+        username=data["username"],
+        password=hashed_password  # Guardar la contraseña encriptada
+    )
+
+    db.session.add(new_customer)
+    db.session.commit()
+
+    return jsonify(new_customer.serialize()), 201

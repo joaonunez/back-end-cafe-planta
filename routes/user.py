@@ -1,9 +1,11 @@
 #user.py
 from flask import Blueprint, request, jsonify
-from models import User, db
+from models import User
+from extensions import db
+
 from datetime import datetime
 from extensions import bcrypt
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, set_access_cookies
 
 user = Blueprint("user", __name__, url_prefix="/user")
 
@@ -67,3 +69,39 @@ def create_users_bulk():
 
     # Retornar la lista de usuarios creados
     return jsonify([user.serialize() for user in new_users]), 201
+
+
+@user.route("/login-user", methods=["POST"])
+def login_customer():
+    # Obtener los datos enviados en la solicitud
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+    
+    # Buscar al usuario por nombre de usuario
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "Usuario Del Sitema no encontrado"}), 404
+    
+    # Verificar la contraseña usando bcrypt de extensions
+    if not bcrypt.check_password_hash(user.password, password):
+        return jsonify({"error": "Credenciales Invalidas"}), 401
+    
+    # Generar token de acceso con JWT usando el RUT del usuario
+    access_token = create_access_token(identity=user.rut)
+    
+    # Serializar datos del usuario (sin incluir la contraseña)
+    user_data = user.serialize()
+
+    # Crear la respuesta con el token y los datos del usuario
+    response = jsonify({
+        "message": "Login successful",
+        "user": user_data,
+        "token": access_token
+    })
+    
+    # Establecer el token en las cookies
+    set_access_cookies(response, access_token)
+    
+    # Devolver la respuesta con estado 200
+    return response, 200

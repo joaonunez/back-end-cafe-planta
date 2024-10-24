@@ -1,5 +1,5 @@
 # Importa la instancia de db
-from .base import db
+from extensions import db
 
 # Importa todos los modelos
 from .benefit import Benefit

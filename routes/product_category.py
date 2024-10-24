@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from models.base import db
+from extensions import db
+
 from models.product_category import ProductCategory
 
 product_category = Blueprint("product_category", __name__, url_prefix="/product_category")

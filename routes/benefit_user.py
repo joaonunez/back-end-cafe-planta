@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from models.base import db
+from extensions import db
+
 from models.benefit_user import BenefitUser
 
 benefit_user = Blueprint('benefit_user', __name__, url_prefix='/benefit_user')
