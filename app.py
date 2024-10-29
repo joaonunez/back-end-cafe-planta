@@ -2,7 +2,7 @@ import os
 from flask import Flask, request, jsonify
 from extensions import db, migrate, cors, bcrypt, jwt
 from models import *  # Importar todos los modelos desde models/__init__.py
-from routes import (benefit, benefit_user, cafe, product_rating, 
+from routes import (benefit, benefit_user, cafe, cart, product_rating, 
                     product_category, customer, combo_menu, 
                     combo_menu_detail, city, sale_detail, favorite, 
                     dining_area, country, product, state, role, 
@@ -106,6 +106,7 @@ def create_app(config_name="default"):
     app.register_blueprint(benefit)
     app.register_blueprint(benefit_user)
     app.register_blueprint(cafe)
+    app.register_blueprint(cart)
     app.register_blueprint(product_rating)
     app.register_blueprint(product_category)
     app.register_blueprint(customer)

@@ -5,6 +5,8 @@ from extensions import db
 from .benefit import Benefit
 from .benefit_user import BenefitUser
 from .cafe import Cafe
+from .cart_item import CartItem
+from .cart import Cart
 from .product_rating import ProductRating
 from .product_category import ProductCategory
 from .customer import Customer
