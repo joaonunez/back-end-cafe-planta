@@ -1,5 +1,5 @@
+# models/sale.py
 from extensions import db
-
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -21,6 +21,9 @@ class Sale(db.Model):
     cafe = relationship('Cafe')
     waiter = relationship('User')
     dining_area = relationship('DiningArea')
+
+    # Nueva relación con SaleDetail
+    details = relationship('SaleDetail', backref='sale', lazy=True)
 
     def serialize(self):
         return {

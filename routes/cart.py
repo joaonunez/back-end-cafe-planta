@@ -78,3 +78,48 @@ def get_cart_items():
                 })
 
     return jsonify({"cart": items}), 200
+
+
+@cart.route('/delete_item/<int:item_id>', methods=['DELETE'])
+@jwt_required()
+def delete_cart_item(item_id):
+    customer_rut = get_jwt_identity()
+    cart = Cart.query.filter_by(customer_rut=customer_rut).first()
+    
+    if not cart:
+        return jsonify({"error": "Cart not found"}), 404
+
+    cart_item = CartItem.query.filter_by(cart_id=cart.id, id=item_id).first()
+
+    if not cart_item:
+        return jsonify({"error": "Item not found in cart"}), 404
+
+    db.session.delete(cart_item)
+    db.session.commit()
+    
+    return jsonify({"message": "Item deleted successfully"}), 200
+
+@cart.route('/update_item/<int:item_id>', methods=['PUT'])
+@jwt_required()
+def update_cart_item(item_id):
+    data = request.get_json()
+    new_quantity = data.get("quantity")
+
+    if not new_quantity or new_quantity < 1:
+        return jsonify({"error": "Quantity must be greater than zero"}), 400
+
+    customer_rut = get_jwt_identity()
+    cart = Cart.query.filter_by(customer_rut=customer_rut).first()
+    
+    if not cart:
+        return jsonify({"error": "Cart not found"}), 404
+
+    cart_item = CartItem.query.filter_by(cart_id=cart.id, id=item_id).first()
+
+    if not cart_item:
+        return jsonify({"error": "Item not found in cart"}), 404
+
+    cart_item.quantity = new_quantity
+    db.session.commit()
+    
+    return jsonify({"message": "Item quantity updated successfully", "quantity": cart_item.quantity}), 200

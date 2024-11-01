@@ -1,5 +1,4 @@
 from extensions import db
-
 from sqlalchemy import Column, Integer, ForeignKey
 
 class SaleDetail(db.Model):
