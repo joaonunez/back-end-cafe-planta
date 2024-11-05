@@ -19,7 +19,6 @@ def add_to_cart():
     if not item_id or not item_type_id:
         return jsonify({"error": "Item ID and Item Type ID are required"}), 400
 
-    # Obtener el carrito del usuario actual o crear uno nuevo si no existe
     customer_rut = get_jwt_identity()
     cart = Cart.query.filter_by(customer_rut=customer_rut).first()
     if not cart:
@@ -27,16 +26,16 @@ def add_to_cart():
         db.session.add(cart)
         db.session.commit()
 
-    # Agregar el item al carrito
     cart_item = CartItem.query.filter_by(cart_id=cart.id, item_id=item_id, item_type_id=item_type_id).first()
     if cart_item:
-        cart_item.quantity += quantity  # Si ya existe, incrementa la cantidad
+        cart_item.quantity += quantity
     else:
         cart_item = CartItem(cart_id=cart.id, item_id=item_id, item_type_id=item_type_id, quantity=quantity)
         db.session.add(cart_item)
 
     db.session.commit()
     return jsonify({"message": "Item added to cart successfully", "cart": cart.serialize()}), 200
+
 @cart.route('/get_items', methods=['GET'])
 @jwt_required()
 def get_cart_items():
@@ -78,7 +77,6 @@ def get_cart_items():
                 })
 
     return jsonify({"cart": items}), 200
-
 
 @cart.route('/delete_item/<int:item_id>', methods=['DELETE'])
 @jwt_required()
@@ -123,3 +121,30 @@ def update_cart_item(item_id):
     db.session.commit()
     
     return jsonify({"message": "Item quantity updated successfully", "quantity": cart_item.quantity}), 200
+
+@cart.route('/clear_items', methods=['DELETE'])
+@jwt_required()
+def clear_cart_items():
+    customer_rut = get_jwt_identity()
+    cart = Cart.query.filter_by(customer_rut=customer_rut).first()
+
+    if not cart:
+        return jsonify({"error": "Cart not found"}), 404
+
+    CartItem.query.filter_by(cart_id=cart.id).delete()
+    db.session.commit()
+    return jsonify({"message": "All items cleared from cart"}), 200
+
+@cart.route('/delete', methods=['DELETE'])
+@jwt_required()
+def delete_cart():
+    customer_rut = get_jwt_identity()
+    cart = Cart.query.filter_by(customer_rut=customer_rut).first()
+
+    if not cart:
+        return jsonify({"error": "Cart not found"}), 404
+
+    CartItem.query.filter_by(cart_id=cart.id).delete()
+    db.session.delete(cart)
+    db.session.commit()
+    return jsonify({"message": "Cart and items deleted successfully"}), 200

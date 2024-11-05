@@ -50,3 +50,8 @@ def create_products_bulk():
 def get_customer_products():
     products = Product.query.all()
     return jsonify([product.serialize() for product in products]), 200
+
+@product.route("/admin-get-products", methods=["GET"])
+def get_admin_products():
+    products = Product.query.all()
+    return jsonify([product.serialize() for product in products]), 200

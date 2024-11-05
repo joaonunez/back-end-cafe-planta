@@ -16,7 +16,6 @@ sale = Blueprint("sale", __name__, url_prefix="/sale")
 def create_sale():
     print("Iniciando la creación de la venta...")
     
-    # Verifica la carga de datos y el JWT
     data = request.get_json()
     print("Datos recibidos:", data)
     
@@ -28,14 +27,21 @@ def create_sale():
     cart_id = data.get("cart_id")
     print(f"Total amount: {total_amount}, Comments: {comments}, Cart ID: {cart_id}")
 
-    # Validación y obtención del carrito
     cart = Cart.query.filter_by(id=cart_id, customer_rut=customer_rut).first()
     if not cart:
         print(f"Error: Carrito no encontrado para Cart ID: {cart_id} y RUT: {customer_rut}")
         return jsonify({"error": "Carrito no encontrado"}), 404
     print(f"Carrito encontrado: {cart.serialize()}")
 
-    # Creación de la venta
+    cafe_id = None
+    for item in cart.items:
+        if item.item_type_id == 1:
+            cafe_id = ComboMenu.query.get(item.item_id).cafe_id
+        elif item.item_type_id == 2:
+            cafe_id = Product.query.get(item.item_id).cafe_id
+        if cafe_id:
+            break
+
     try:
         sale = Sale(
             date=datetime.now(),
@@ -43,16 +49,15 @@ def create_sale():
             status="En preparación",
             comments=comments,
             customer_rut=customer_rut,
-            cafe_id=cart.items[0].item.cafe_id if cart.items else None
+            cafe_id=cafe_id
         )
         db.session.add(sale)
-        db.session.flush()  # Para obtener el ID de la venta
+        db.session.flush()
         print(f"Venta creada con ID: {sale.id}")
     except Exception as e:
         print("Error al crear la venta:", e)
         return jsonify({"error": "Error al crear la venta"}), 500
 
-    # Creación de los detalles de venta
     try:
         for item in cart.items:
             print(f"Procesando item del carrito: {item.serialize()}")
@@ -70,7 +75,6 @@ def create_sale():
         db.session.rollback()
         return jsonify({"error": "Error al crear detalles de venta"}), 500
 
-    # Eliminación de los elementos del carrito
     try:
         CartItem.query.filter_by(cart_id=cart.id).delete()
         db.session.commit()
@@ -98,3 +102,41 @@ def get_latest_sale():
     sale_data["items"] = [item.serialize() for item in sale.details]
     
     return jsonify(sale_data), 200
+
+@sale.route("/order_details/<int:sale_id>", methods=["GET"])
+@jwt_required()
+def get_order_details(sale_id):
+    customer_rut = get_jwt_identity()
+    sale = Sale.query.filter_by(id=sale_id, customer_rut=customer_rut).first()
+
+    if not sale:
+        return jsonify({"error": "Venta no encontrada"}), 404
+
+    items = []
+    for detail in sale.details:
+        item_data = {
+            "quantity": detail.quantity,
+            "unit_price": detail.unit_price,
+            "item_type_id": detail.item_type_id,
+            "item_id": detail.item_id
+        }
+        
+        # Agregar detalles según el tipo de ítem (sin el campo description)
+        if detail.item_type_id == 1:  # ComboMenu
+            combo = ComboMenu.query.get(detail.item_id)
+            if combo:
+                item_data.update({
+                    "name": combo.name,
+                    "image_url": combo.image_url
+                })
+        elif detail.item_type_id == 2:  # Product
+            product = Product.query.get(detail.item_id)
+            if product:
+                item_data.update({
+                    "name": product.name,
+                    "image_url": product.image_url
+                })
+
+        items.append(item_data)
+
+    return jsonify({"order_id": sale.id, "items": items}), 200

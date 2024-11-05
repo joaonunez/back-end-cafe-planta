@@ -1,8 +1,8 @@
+# models/product.py
 from extensions import db
-
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-from .combo_menu_detail import combo_menu_detail  # Actualización de la tabla intermedia
+from .combo_menu_detail import combo_menu_detail
 
 class Product(db.Model):
     __tablename__ = 'product'
@@ -21,7 +21,7 @@ class Product(db.Model):
     item_type_id = Column(Integer, ForeignKey('item_type.id'), nullable=False)
     item_type = relationship('ItemType')
 
-    # Establecer la relación con ComboMenu usando back_populates
+    # Relación con ComboMenu usando back_populates
     combo_menus = relationship('ComboMenu', secondary=combo_menu_detail, back_populates='products')
 
     def serialize(self):
@@ -32,6 +32,9 @@ class Product(db.Model):
             "stock": self.stock,
             "image_url": self.image_url,
             "product_category_id": self.product_category_id,
+            "product_category_name": self.product_category.name if self.product_category else None,  # Nombre de la categoría
             "cafe_id": self.cafe_id,
+            "cafe_name": self.cafe.name if self.cafe else None,  # Nombre del café
             "item_type_id": self.item_type_id,
+            "item_type_name": self.item_type.name if self.item_type else None  # Nombre del tipo de ítem
         }

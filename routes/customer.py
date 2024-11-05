@@ -2,7 +2,7 @@
 from flask import Blueprint, request, jsonify
 from models import Customer
 from extensions import bcrypt, db
-from flask_jwt_extended import create_access_token, set_access_cookies
+from flask_jwt_extended import create_access_token, set_access_cookies, jwt_required, unset_jwt_cookies
 customer = Blueprint("customer", __name__, url_prefix="/customer")
 
 @customer.route("/", methods=["GET"])
@@ -124,3 +124,10 @@ def register_customer():
     db.session.commit()
 
     return jsonify(new_customer.serialize()), 201
+
+@customer.route("/logout-customer", methods=["POST"])
+@jwt_required()  # Requiere autenticación para acceder al logout
+def logout_customer():
+    response = jsonify({"message": "Logout successful"})
+    unset_jwt_cookies(response)  # Elimina las cookies JWT
+    return response, 200
