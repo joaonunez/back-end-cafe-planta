@@ -43,13 +43,12 @@ def get_cart_items():
     cart = Cart.query.filter_by(customer_rut=customer_rut).first()
     
     if not cart:
-        return jsonify({"cart": []})  # Devuelve un carrito vacío si no existe
+        return jsonify({"cart": []})
 
     cart_items = CartItem.query.filter_by(cart_id=cart.id).all()
-    
     items = []
     for item in cart_items:
-        if item.item_type_id == 1:  # ID para ComboMenu
+        if item.item_type_id == 1:
             combo = ComboMenu.query.get(item.item_id)
             if combo:
                 items.append({
@@ -62,7 +61,7 @@ def get_cart_items():
                     "price": combo.price,
                     "image_url": combo.image_url
                 })
-        elif item.item_type_id == 2:  # ID para Product
+        elif item.item_type_id == 2:
             product = Product.query.get(item.item_id)
             if product:
                 items.append({

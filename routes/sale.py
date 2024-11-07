@@ -35,11 +35,17 @@ def create_sale():
 
     cafe_id = None
     for item in cart.items:
+        print(f"Procesando item en carrito para determinar cafe_id: {item.serialize()}")
         if item.item_type_id == 1:
-            cafe_id = ComboMenu.query.get(item.item_id).cafe_id
+            combo = ComboMenu.query.get(item.item_id)
+            if combo:
+                cafe_id = combo.cafe_id
         elif item.item_type_id == 2:
-            cafe_id = Product.query.get(item.item_id).cafe_id
+            product = Product.query.get(item.item_id)
+            if product:
+                cafe_id = product.cafe_id
         if cafe_id:
+            print(f"cafe_id determinado: {cafe_id}")
             break
 
     try:
@@ -61,10 +67,22 @@ def create_sale():
     try:
         for item in cart.items:
             print(f"Procesando item del carrito: {item.serialize()}")
+            if item.item_type_id == 1:
+                combo = ComboMenu.query.get(item.item_id)
+                unit_price = combo.price if combo else 0
+                print(f"Item Combo encontrado: {combo.serialize() if combo else 'No encontrado'}, Precio unitario: {unit_price}")
+            elif item.item_type_id == 2:
+                product = Product.query.get(item.item_id)
+                unit_price = product.price if product else 0
+                print(f"Item Product encontrado: {product.serialize() if product else 'No encontrado'}, Precio unitario: {unit_price}")
+            else:
+                print("Error: item_type_id desconocido.")
+                continue
+
             sale_detail = SaleDetail(
                 sale_id=sale.id,
                 quantity=item.quantity,
-                unit_price=item.item.price,
+                unit_price=unit_price,
                 item_type_id=item.item_type_id,
                 item_id=item.item_id
             )
@@ -121,15 +139,14 @@ def get_order_details(sale_id):
             "item_id": detail.item_id
         }
         
-        # Agregar detalles según el tipo de ítem (sin el campo description)
-        if detail.item_type_id == 1:  # ComboMenu
+        if detail.item_type_id == 1:
             combo = ComboMenu.query.get(detail.item_id)
             if combo:
                 item_data.update({
                     "name": combo.name,
                     "image_url": combo.image_url
                 })
-        elif detail.item_type_id == 2:  # Product
+        elif detail.item_type_id == 2:
             product = Product.query.get(detail.item_id)
             if product:
                 item_data.update({
