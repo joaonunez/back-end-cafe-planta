@@ -24,10 +24,11 @@ def create_app(config_name="default"):
     # CONFIGURACIÓN DE BASE DE DATOS
     # ------------------------------------
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-        "DATABASE_URL", 
-        "mysql+pymysql://root:kYkDChFJJaDcDvfMISLvVrnJzyDdFcPw@junction.proxy.rlwy.net:26699/railway"
+        "DATABASE_URL",
+        "mysql+pymysql://cjo104346_admin:jcg6To$(EHU$@190.107.177.34:3306/cjo104346_cafeplanta"
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 
     # ------------------------------------
     # CONFIGURACIÓN JWT
