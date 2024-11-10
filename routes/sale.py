@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, make_response
 from extensions import db
 from models.sale import Sale
 from models.sale_detail import SaleDetail
@@ -157,3 +157,46 @@ def get_order_details(sale_id):
         items.append(item_data)
 
     return jsonify({"order_id": sale.id, "items": items}), 200
+
+@sale.route("/in_progress", methods=["GET"])
+@jwt_required()
+def get_orders_in_progress():
+    try:
+        # Filtrar las ventas con estado "En preparación"
+        orders = Sale.query.filter_by(status="En preparación").all()
+        
+        # Serializar cada orden
+        orders_data = [order.serialize() for order in orders]
+        return jsonify(orders_data), 200
+    except Exception as e:
+        print("Error al obtener pedidos en progreso:", e)
+        return jsonify({"error": "Error al obtener pedidos"}), 500
+    
+# Agrega esta ruta en `sale.py`
+from flask_jwt_extended import jwt_required, get_jwt_identity
+
+# Ruta en `sale.py` para tomar una orden
+from flask_jwt_extended import jwt_required, get_jwt_identity
+
+@sale.route("/take_order/<int:order_id>", methods=["PUT"])
+@jwt_required()
+def take_order(order_id):
+    waiter_rut = get_jwt_identity()  # El RUT del vendedor que toma la orden
+    sale = Sale.query.get(order_id)
+
+    if sale is None or sale.status != "En preparación":
+        return jsonify({"error": "La orden ya ha sido tomada o no existe"}), 400
+
+    # Asigna el rut del vendedor y cambia el estado
+    sale.waiter_rut = waiter_rut
+    sale.status = "Orden Tomada"
+    db.session.commit()
+    
+    return jsonify(sale.serialize()), 200
+
+# Ruta en `sale.py` para obtener órdenes tomadas por un vendedor
+@sale.route("/taken_orders/<string:waiter_rut>", methods=["GET"])
+@jwt_required()
+def get_taken_orders(waiter_rut):
+    orders = Sale.query.filter_by(waiter_rut=waiter_rut, status="Orden Tomada").all()
+    return jsonify([order.serialize() for order in orders]), 200

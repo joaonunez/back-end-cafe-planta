@@ -65,3 +65,18 @@ def logout_employee():
     response = jsonify({"message": "Logout successful"})
     unset_jwt_cookies(response)
     return response, 200
+
+# Ruta para obtener todos los usuarios en el sistema
+@user.route("/get_users_on_system", methods=["GET"])
+@jwt_required()
+def get_users_on_system():
+    try:
+        # Obtiene todos los usuarios de la base de datos
+        users = User.query.all()
+        
+        # Serializa cada usuario para devolver los datos en formato JSON
+        users_data = [user.serialize() for user in users]
+        return jsonify(users_data), 200
+    except Exception as e:
+        print("Error al obtener usuarios en el sistema:", e)
+        return jsonify({"error": "Error al obtener usuarios"}), 500
