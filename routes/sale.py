@@ -200,3 +200,41 @@ def take_order(order_id):
 def get_taken_orders(waiter_rut):
     orders = Sale.query.filter_by(waiter_rut=waiter_rut, status="Orden Tomada").all()
     return jsonify([order.serialize() for order in orders]), 200
+
+
+
+
+# Endpoint para que el administrador obtenga todas las ventas sin filtrar
+@sale.route("/request_all_sales_by_admin", methods=["GET"])
+@jwt_required()
+def request_all_sales_by_admin():
+    try:
+        # Obtiene todas las ventas sin filtrar
+        sales = Sale.query.all()
+        sales_data = [sale.serialize() for sale in sales]
+        return jsonify(sales_data), 200
+    except Exception as e:
+        print("Error al obtener todas las ventas:", e)
+        return jsonify({"error": "Error al obtener todas las ventas"}), 500
+
+# Endpoint para que el administrador elimine una venta específica
+@sale.route("/delete_sale_by_admin/<int:sale_id>", methods=["DELETE"])
+@jwt_required()
+def delete_sale_by_admin(sale_id):
+    try:
+        sale = Sale.query.get(sale_id)
+        if not sale:
+            return jsonify({"error": "Venta no encontrada"}), 404
+
+        # Eliminar los detalles de la venta asociados antes de eliminar la venta
+        SaleDetail.query.filter_by(sale_id=sale_id).delete()
+
+        # Luego, eliminar la venta en sí
+        db.session.delete(sale)
+        db.session.commit()
+        
+        return jsonify({"message": "Venta eliminada exitosamente"}), 200
+    except Exception as e:
+        print("Error al eliminar la venta:", e)
+        db.session.rollback()
+        return jsonify({"error": "Error al eliminar la venta"}), 500
