@@ -16,8 +16,9 @@ class User(db.Model):
     role_id = Column(Integer, ForeignKey('role.id'), nullable=False)
     cafe_id = Column(Integer, ForeignKey('cafe.id'), nullable=False)
 
-    # Relación con el modelo Role para obtener el nombre del rol
+    # Relación con el modelo Role y Cafe
     role = relationship("Role", backref="users")
+    cafe = relationship("Cafe", backref="users")
 
     def serialize(self):
         return {
@@ -28,6 +29,7 @@ class User(db.Model):
             "username": self.username,
             "email": self.email,
             "role_id": self.role_id,
-            "role_name": self.role.name,  # Agrega el nombre del rol en el JSON serializado
+            "role_name": self.role.name,  
             "cafe_id": self.cafe_id,
+            "cafe_name": self.cafe.name  # Incluye el nombre del café en el JSON serializado
         }
