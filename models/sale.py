@@ -22,7 +22,6 @@ class Sale(db.Model):
     waiter = relationship('User')
     dining_area = relationship('DiningArea')
 
-    # Nueva relación con SaleDetail
     details = relationship('SaleDetail', backref='sale', lazy=True)
 
     def serialize(self):
@@ -33,7 +32,10 @@ class Sale(db.Model):
             "status": self.status,
             "comments": self.comments,
             "customer_rut": self.customer_rut,
+            "customer_name": self.customer.name if self.customer else "Aún sin asignar",
             "cafe_id": self.cafe_id,
+            "cafe_name": self.cafe.name if self.cafe else "Aún sin asignar",
             "waiter_rut": self.waiter_rut,
+            "waiter_name": f"{self.waiter.first_name} {self.waiter.last_name_father}" if self.waiter else "Aún sin asignar",
             "dining_area_id": self.dining_area_id,
         }
