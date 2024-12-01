@@ -6,7 +6,7 @@ from routes import (benefit, benefit_user, cafe, cart, product_rating,
                     product_category, customer, combo_menu, 
                     combo_menu_detail, city, sale_detail, favorite, 
                     dining_area, country, product, state, role, 
-                    item_type, user, sale)
+                    item_type, user, sale, cloudinary_bp)
 from flask_jwt_extended import (create_access_token, get_jwt, 
                                 get_jwt_identity, set_access_cookies)
 from werkzeug.exceptions import Unauthorized
@@ -124,6 +124,7 @@ def create_app(config_name="default"):
     app.register_blueprint(item_type)
     app.register_blueprint(user)
     app.register_blueprint(sale)
+    app.register_blueprint(cloudinary_bp)
 
     return app
 

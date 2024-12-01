@@ -22,3 +22,4 @@ from .role import role
 from .item_type import item_type
 from .user import user
 from .sale import sale
+from .cloudinary import cloudinary_bp

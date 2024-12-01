@@ -85,7 +85,7 @@ def create_product():
 
 @product.route("/update/<int:product_id>", methods=["PUT"])
 def update_product(product_id):
-    """Actualiza un producto existente."""
+    """Actualiza un producto existente y elimina la imagen previa si es necesario."""
     try:
         product = Product.query.get(product_id)
         if not product:
@@ -110,10 +110,16 @@ def update_product(product_id):
             product.cafe_id = int(cafe_id)
 
         if new_image:
+            # Eliminar la imagen anterior si existe
             if product.image_url:
-                public_id = product.image_url.split("/")[-1].split(".")[0]
-                cloudinary.uploader.destroy(public_id)
+                try:
+                    public_id = product.image_url.split("/")[-1].split(".")[0]
+                    cloudinary.uploader.destroy(f"product/{public_id}")
+                    print(f"Imagen previa eliminada: {public_id}")
+                except Exception as e:
+                    print(f"Error al eliminar imagen previa: {str(e)}")
 
+            # Subir la nueva imagen
             upload_result = cloudinary.uploader.upload(
                 new_image, folder="product", resource_type="image"
             )
