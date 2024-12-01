@@ -231,3 +231,32 @@ def mark_as_delivered(order_id):
 def get_completed_orders(waiter_rut):
     orders = Sale.query.filter_by(waiter_rut=waiter_rut, status="Entregado").all()
     return jsonify([order.serialize() for order in orders]), 200
+
+@sale.route("/delete_sale_by_admin/<int:sale_id>", methods=["DELETE"])
+@jwt_required()
+def delete_sale_by_admin(sale_id):
+    """Elimina una venta específica por el administrador."""
+    try:
+        # Log inicial
+        print(f"Solicitud para eliminar venta con ID: {sale_id}")
+
+        # Buscar la venta
+        sale = Sale.query.get(sale_id)
+        if not sale:
+            print(f"Venta con ID {sale_id} no encontrada.")
+            return jsonify({"error": "Venta no encontrada"}), 404
+
+        # Eliminar los detalles de la venta
+        print(f"Eliminando detalles de la venta con ID {sale_id}")
+        SaleDetail.query.filter_by(sale_id=sale_id).delete()
+
+        # Eliminar la venta
+        db.session.delete(sale)
+        db.session.commit()
+
+        print(f"Venta con ID {sale_id} eliminada exitosamente.")
+        return jsonify({"message": "Venta eliminada exitosamente"}), 200
+
+    except Exception as e:
+        print(f"Error al eliminar la venta: {str(e)}")
+        return jsonify({"error": "Error al eliminar la venta", "details": str(e)}), 500

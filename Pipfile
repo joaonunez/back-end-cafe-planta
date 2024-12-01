@@ -16,6 +16,7 @@ flask-jwt-extended = "*"
 bcrypt = "*"
 flask-bcrypt = "*"
 cloudinary = "*"
+werkzeug = "*"
 
 [dev-packages]
 
