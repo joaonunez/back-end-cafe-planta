@@ -27,6 +27,9 @@ class ComboMenu(db.Model):
             "price": self.price,
             "image_url": self.image_url,
             "cafe_id": self.cafe_id,
+            "cafe_name": self.cafe.name if self.cafe else None,
             "item_type_id": self.item_type_id,
             "products": [product.serialize() for product in self.products]
         }
+
+

@@ -182,3 +182,17 @@ def delete_product(product_id):
     except Exception as e:
         print(f"Error al eliminar producto: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+
+@product.route("/<int:product_id>", methods=["GET"])
+def get_product_by_id(product_id):
+    """Obtiene los detalles de un producto por ID."""
+    try:
+        product = Product.query.get(product_id)
+        if not product:
+            return jsonify({"error": "Producto no encontrado"}), 404
+
+        return jsonify(product.serialize()), 200
+    except Exception as e:
+        print(f"Error al obtener producto por ID: {e}")
+        return jsonify({"error": "Error al obtener producto", "details": str(e)}), 500
