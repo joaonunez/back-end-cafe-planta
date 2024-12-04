@@ -130,12 +130,38 @@ def get_latest_sale():
     if not sale:
         return jsonify({"error": "No se encontró ninguna venta"}), 404
 
+    # Resolver detalles con datos de productos o combos
+    items = []
+    for detail in sale.details:
+        if detail.item_type_id == 1:  # Combo
+            combo = ComboMenu.query.get(detail.item_id)
+            if combo:
+                items.append({
+                    "id": detail.id,
+                    "name": combo.name,
+                    "image_url": combo.image_url,
+                    "quantity": detail.quantity,
+                    "unit_price": detail.unit_price,
+                    "total_price": detail.quantity * detail.unit_price
+                })
+        elif detail.item_type_id == 2:  # Producto
+            product = Product.query.get(detail.item_id)
+            if product:
+                items.append({
+                    "id": detail.id,
+                    "name": product.name,
+                    "image_url": product.image_url,
+                    "quantity": detail.quantity,
+                    "unit_price": detail.unit_price,
+                    "total_price": detail.quantity * detail.unit_price
+                })
+
     sale_data = sale.serialize()
-    sale_data["items"] = [item.serialize() for item in sale.details]
+    sale_data["items"] = items
 
     return jsonify(sale_data), 200
 
-# Ruta para obtener los detalles de una venta específica
+
 @sale.route("/order_details/<int:sale_id>", methods=["GET"])
 @jwt_required()
 def get_order_details(sale_id):
@@ -145,8 +171,34 @@ def get_order_details(sale_id):
     if not sale:
         return jsonify({"error": "Venta no encontrada"}), 404
 
-    items = [item.serialize() for item in sale.details]
+    # Resolver detalles con datos de productos o combos
+    items = []
+    for detail in sale.details:
+        if detail.item_type_id == 1:  # Combo
+            combo = ComboMenu.query.get(detail.item_id)
+            if combo:
+                items.append({
+                    "id": detail.id,
+                    "name": combo.name,
+                    "image_url": combo.image_url,
+                    "quantity": detail.quantity,
+                    "unit_price": detail.unit_price,
+                    "total_price": detail.quantity * detail.unit_price
+                })
+        elif detail.item_type_id == 2:  # Producto
+            product = Product.query.get(detail.item_id)
+            if product:
+                items.append({
+                    "id": detail.id,
+                    "name": product.name,
+                    "image_url": product.image_url,
+                    "quantity": detail.quantity,
+                    "unit_price": detail.unit_price,
+                    "total_price": detail.quantity * detail.unit_price
+                })
+
     return jsonify({"order_id": sale.id, "items": items}), 200
+
 
 # Ruta para que el administrador obtenga todas las ventas
 @sale.route("/request_all_sales_by_admin", methods=["GET"])
@@ -260,3 +312,30 @@ def delete_sale_by_admin(sale_id):
     except Exception as e:
         print(f"Error al eliminar la venta: {str(e)}")
         return jsonify({"error": "Error al eliminar la venta", "details": str(e)}), 500
+
+@sale.route("/purchase_history", methods=["GET"])
+@jwt_required()
+def get_purchase_history():
+    customer_rut = get_jwt_identity()
+    try:
+        # Obtener todas las ventas de un cliente, ordenadas por fecha
+        sales = Sale.query.filter_by(customer_rut=customer_rut).order_by(Sale.date.desc()).all()
+
+        if not sales:
+            return jsonify({"error": "No se encontraron ventas"}), 404
+
+        # Serializar ventas excluyendo la última
+        all_sales = []
+        for sale in sales[1:]:  # Excluir la última venta
+            serialized_sale = sale.serialize()
+            serialized_sale["items"] = [
+                detail.serialize() for detail in sale.details
+            ]  # Añadir detalles de los ítems
+            all_sales.append(serialized_sale)
+
+        return jsonify(all_sales), 200
+
+    except Exception as e:
+        print("Error al obtener el historial de compras:", e)
+        return jsonify({"error": "Error al obtener el historial de compras"}), 500
+
