@@ -69,9 +69,9 @@ def create_sale():
         qr_status = data.get("qr_status", "default")  # Estado QR obligatorio
 
         # Validación del estado QR
-        if qr_status != "processing":
-            print("Error: Estado QR inválido o no permitido")
-            return jsonify({"error": "Estado del QR inválido o no permitido"}), 400
+        if qr_status not in ["processing", "success"]:  # Manejar reintentos con "success"
+            print(f"Error: Estado QR inválido o no permitido: {qr_status}")
+            return jsonify({"error": f"Estado del QR no válido ({qr_status})"}), 400
 
         # Validar ID de la mesa
         if not dining_area_id:
@@ -158,6 +158,7 @@ def create_sale():
         db.session.rollback()
         print(f"Error inesperado al crear la venta: {e}")
         return jsonify({"error": "Error al crear la venta"}), 500
+
 
 
 
