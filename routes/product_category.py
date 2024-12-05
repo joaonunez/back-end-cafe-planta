@@ -1,13 +1,11 @@
 from flask import Blueprint, request, jsonify
-from models.base import db
+from extensions import db
+
 from models.product_category import ProductCategory
 
 product_category = Blueprint("product_category", __name__, url_prefix="/product_category")
 
-@product_category.route("/", methods=["GET"])
-def get_product_categories():
-    categories = ProductCategory.query.all()
-    return jsonify([category.serialize() for category in categories])
+
 
 @product_category.route('/bulk', methods=['POST'])
 def create_product_categories_bulk():
@@ -31,3 +29,8 @@ def create_product_categories_bulk():
     db.session.commit()
 
     return jsonify([category.serialize() for category in new_categories]), 201
+
+@product_category.route("/", methods=["GET"])
+def get_product_categories():
+    categories = ProductCategory.query.all()
+    return jsonify([category.serialize() for category in categories])

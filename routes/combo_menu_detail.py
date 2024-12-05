@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from models.base import db
+from extensions import db
+
 from models.combo_menu_detail import combo_menu_detail
 from models.combo_menu import ComboMenu
 from models.product import Product

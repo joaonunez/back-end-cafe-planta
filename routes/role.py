@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from models.base import db
+from extensions import db
+
 from models.role import Role
 
 

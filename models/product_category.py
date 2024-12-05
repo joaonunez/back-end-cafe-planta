@@ -1,4 +1,5 @@
-from .base import db
+from extensions import db
+
 from sqlalchemy import Column, Integer, String
 
 class ProductCategory(db.Model):

@@ -1,7 +1,11 @@
+from extensions import db
+
 # Importa todos los blueprints
+
 from .benefit import benefit
 from .benefit_user import benefit_user
 from .cafe import cafe
+from .cart import cart
 from .product_rating import product_rating
 from .product_category import product_category
 from .customer import customer
@@ -18,3 +22,4 @@ from .role import role
 from .item_type import item_type
 from .user import user
 from .sale import sale
+from .cloudinary import cloudinary_bp

@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from models.base import db
+from extensions import db
+
 from models.country import Country
 
 country = Blueprint("country", __name__, url_prefix="/country")

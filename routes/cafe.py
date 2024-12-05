@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from models.base import db
+from extensions import db
+
 from models.cafe import Cafe
 
 cafe = Blueprint("cafe", __name__, url_prefix="/cafe")

@@ -1,4 +1,5 @@
-from .base import db
+from extensions import db
+
 from .combo_menu import ComboMenu
 from .product import Product
 from sqlalchemy import Column, Integer, String, ForeignKey

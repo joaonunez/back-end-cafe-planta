@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from models.base import db
+from extensions import db
+
 from models.item_type import ItemType
 
 item_type = Blueprint("item_type", __name__, url_prefix="/item_type")

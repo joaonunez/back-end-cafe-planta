@@ -1,8 +1,10 @@
-from .base import db
+from extensions import db
 from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
 
 class User(db.Model):
     __tablename__ = 'user'
+    
     rut = Column(String(12), primary_key=True)
     first_name = Column(String(100), nullable=False)
     last_name_father = Column(String(100), nullable=False)
@@ -14,6 +16,10 @@ class User(db.Model):
     role_id = Column(Integer, ForeignKey('role.id'), nullable=False)
     cafe_id = Column(Integer, ForeignKey('cafe.id'), nullable=False)
 
+    # Relación con el modelo Role y Cafe
+    role = relationship("Role", backref="users")
+    cafe = relationship("Cafe", backref="users")
+
     def serialize(self):
         return {
             "rut": self.rut,
@@ -23,5 +29,7 @@ class User(db.Model):
             "username": self.username,
             "email": self.email,
             "role_id": self.role_id,
+            "role_name": self.role.name,  
             "cafe_id": self.cafe_id,
+            "cafe_name": self.cafe.name  # Incluye el nombre del café en el JSON serializado
         }
