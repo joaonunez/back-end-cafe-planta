@@ -2,12 +2,12 @@ import os
 from flask import Flask, request, jsonify
 from extensions import db, migrate, cors, bcrypt, jwt
 from models import *  # Importar todos los modelos desde models/__init__.py
-from routes import (benefit, benefit_user, cafe, cart, product_rating, 
-                    product_category, customer, combo_menu, 
-                    combo_menu_detail, city, sale_detail, favorite, 
-                    dining_area, country, product, state, role, 
+from routes import (benefit, benefit_user, cafe, cart, product_rating,
+                    product_category, customer, combo_menu,
+                    combo_menu_detail, city, sale_detail, favorite,
+                    dining_area, country, product, state, role,
                     item_type, user, sale, cloudinary_bp)
-from flask_jwt_extended import (create_access_token, get_jwt, 
+from flask_jwt_extended import (create_access_token, get_jwt,
                                 get_jwt_identity, set_access_cookies)
 from werkzeug.exceptions import Unauthorized
 from datetime import datetime, timedelta, timezone
@@ -130,12 +130,19 @@ def create_app(config_name="default"):
     app.register_blueprint(sale)
     app.register_blueprint(cloudinary_bp)
 
+    # Ruta principal para verificar que el backend esté corriendo
+    @app.route("/")
+    def home():
+        return jsonify({"message": "Backend is running!"})
+
     return app
-    
+
 
 # ------------------------------------
-# EJECUCIÓN DE LA APLICACIÓN
+# DEFINICIÓN GLOBAL DE LA APLICACIÓN
 # ------------------------------------
+app = create_app()
+
+# Solo para desarrollo local
 if __name__ == "__main__":
-    app = create_app()
     app.run(host="0.0.0.0", port=3001)
