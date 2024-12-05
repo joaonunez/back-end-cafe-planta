@@ -1,4 +1,5 @@
-from flask import Blueprint, jsonify, request, json
+from flask import Blueprint, jsonify, request
+import json
 from extensions import db
 from models.dining_area import DiningArea
 import qrcode
