@@ -36,7 +36,9 @@ def create_app(config_name="default"):
     app.config["SECRET_KEY"] = "super_super_secret"
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]  # Usar cookies para tokens
     app.config["JWT_ACCESS_COOKIE_PATH"] = "/"  # Ruta de la cookie de acceso
-    app.config["JWT_COOKIE_SECURE"] = False  # Cambiar a True en producción para usar HTTPS
+    app.config["JWT_COOKIE_SECURE"] = True  # Asegura que las cookies solo se envíen en conexiones HTTPS
+    app.config["JWT_COOKIE_SAMESITE"] = "None"  # Permite cookies en solicitudes cruzadas
+
     app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Habilitar en producción
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
     app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
@@ -48,10 +50,14 @@ def create_app(config_name="default"):
     migrate.init_app(app, db)
 
     # Configurar CORS con soporte solo para localhost
-    cors.init_app(app, resources={r"/*": {"origins": "http://localhost:3000"}},
-                  supports_credentials=True,
-                  allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
-                  expose_headers="Authorization")
+    cors.init_app(app, resources={r"/*": {"origins": [
+    "http://localhost:3000",  # Para pruebas locales
+    "https://front-end-cafe-planta.vercel.app"  # Dominio del frontend desplegado en Vercel
+    ]}},
+    supports_credentials=True,
+    allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
+    expose_headers="Authorization")
+
 
     bcrypt.init_app(app)
     jwt.init_app(app)
@@ -130,6 +136,6 @@ def create_app(config_name="default"):
 # ------------------------------------
 # EJECUCIÓN DE LA APLICACIÓN
 # ------------------------------------
-if __name__ == "__main__": 
+if __name__ == "__main__":
     app = create_app()
-    app.run(host="127.0.0.1", port=3001, debug=True)
+    app.run(host="0.0.0.0", port=3001)
