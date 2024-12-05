@@ -102,9 +102,11 @@ def scan_qr():
             dining_area_id = qr_data.get("id")
             cafe_id = qr_data.get("cafe_id")
 
-            if not dining_area_id or not cafe_id:
-                print(f"Error: Datos incompletos en el QR (ID: {dining_area_id}, Cafe ID: {cafe_id})")
-                return jsonify({"error": "El QR no contiene información válida"}), 400
+            if not dining_area:
+                error_message = f"La mesa con ID {dining_area_id} y café {cafe_id} no existe."
+                print(error_message)
+                return jsonify({"error": error_message}), 404
+
 
             # Buscar la mesa en la base de datos
             dining_area = DiningArea.query.filter_by(id=dining_area_id, cafe_id=cafe_id).first()

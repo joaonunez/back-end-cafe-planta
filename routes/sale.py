@@ -95,8 +95,10 @@ def create_sale():
         # Validar existencia del carrito
         cart = Cart.query.filter_by(id=cart_id, customer_rut=customer_rut).first()
         if not cart:
-            print(f"Error: Carrito con ID {cart_id} no encontrado para el cliente {customer_rut}")
-            return jsonify({"error": "Carrito no encontrado"}), 404
+            error_message = f"Carrito con ID {cart_id} no encontrado para el cliente {customer_rut}."
+            print(error_message)
+            return jsonify({"error": error_message}), 404
+
 
         # Validar que el carrito no esté vacío
         cart_items = CartItem.query.filter_by(cart_id=cart.id).all()
