@@ -17,7 +17,7 @@ sale = Blueprint("sale", __name__, url_prefix="/sale")
 @sale.route("/create", methods=["POST"])
 @jwt_required()
 def create_sale():
-    """Crea una venta, validando el ID de la mesa desde el QR."""
+    """Crea una venta, incluyendo los detalles del carrito como SaleDetail."""
     try:
         data = request.get_json()
         customer_rut = get_jwt_identity()
@@ -29,6 +29,13 @@ def create_sale():
         if not dining_area_id:
             return jsonify({"error": "El ID de la mesa es requerido"}), 400
 
+        # Verificar el estado del último pedido
+        latest_sale = Sale.query.filter_by(customer_rut=customer_rut).order_by(Sale.date.desc()).first()
+        if latest_sale and latest_sale.status != "Entregado":
+            return jsonify({
+                "error": "No puedes realizar un nuevo pedido mientras tu último pedido no haya sido entregado."
+            }), 403
+
         # Verificar existencia de la mesa
         dining_area = DiningArea.query.get(dining_area_id)
         if not dining_area:
@@ -36,7 +43,12 @@ def create_sale():
 
         cafe_id = dining_area.cafe_id
 
-        # Crear venta
+        # Validar existencia del carrito
+        cart = Cart.query.filter_by(id=cart_id, customer_rut=customer_rut).first()
+        if not cart:
+            return jsonify({"error": "Carrito no encontrado"}), 404
+
+        # Crear la venta
         sale = Sale(
             date=datetime.now(),
             total_amount=total_amount,
@@ -44,10 +56,37 @@ def create_sale():
             comments=comments,
             customer_rut=customer_rut,
             cafe_id=cafe_id,
-            dining_area_id=dining_area_id
+            dining_area_id=dining_area_id,
         )
-
         db.session.add(sale)
+        db.session.flush()  # Obtener el ID de la venta
+
+        # Agregar detalles desde el carrito
+        cart_items = CartItem.query.filter_by(cart_id=cart.id).all()
+        if not cart_items:
+            return jsonify({"error": "El carrito está vacío"}), 400
+
+        for item in cart_items:
+            # Obtener precio según el tipo de item
+            if item.item_type_id == 1:  # Producto
+                product = Product.query.get(item.item_id)
+                unit_price = product.price if product else 0
+            elif item.item_type_id == 2:  # Combo
+                combo = ComboMenu.query.get(item.item_id)
+                unit_price = combo.price if combo else 0
+
+            sale_detail = SaleDetail(
+                sale_id=sale.id,
+                quantity=item.quantity,
+                unit_price=unit_price,
+                item_type_id=item.item_type_id,
+                item_id=item.item_id,
+            )
+            db.session.add(sale_detail)
+
+        # Vaciar el carrito
+        CartItem.query.filter_by(cart_id=cart.id).delete()
+
         db.session.commit()
 
         return jsonify(sale.serialize()), 201
@@ -55,6 +94,7 @@ def create_sale():
     except Exception as e:
         print(f"Error al crear venta: {e}")
         return jsonify({"error": "Error al crear la venta"}), 500
+
 
 # Ruta para obtener pedidos en progreso
 @sale.route("/in_progress", methods=["GET"])
