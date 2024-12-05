@@ -2,12 +2,12 @@ import os
 from flask import Flask, request, jsonify
 from extensions import db, migrate, cors, bcrypt, jwt
 from models import *  # Importar todos los modelos desde models/__init__.py
-from routes import (benefit, benefit_user, cafe, cart, product_rating, 
-                    product_category, customer, combo_menu, 
-                    combo_menu_detail, city, sale_detail, favorite, 
-                    dining_area, country, product, state, role, 
+from routes import (benefit, benefit_user, cafe, cart, product_rating,
+                    product_category, customer, combo_menu,
+                    combo_menu_detail, city, sale_detail, favorite,
+                    dining_area, country, product, state, role,
                     item_type, user, sale, cloudinary_bp)
-from flask_jwt_extended import (create_access_token, get_jwt, 
+from flask_jwt_extended import (create_access_token, get_jwt,
                                 get_jwt_identity, set_access_cookies)
 from werkzeug.exceptions import Unauthorized
 from datetime import datetime, timedelta, timezone
@@ -36,7 +36,9 @@ def create_app(config_name="default"):
     app.config["SECRET_KEY"] = "super_super_secret"
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]  # Usar cookies para tokens
     app.config["JWT_ACCESS_COOKIE_PATH"] = "/"  # Ruta de la cookie de acceso
-    app.config["JWT_COOKIE_SECURE"] = False  # Cambiar a True en producción para usar HTTPS
+    app.config["JWT_COOKIE_SECURE"] = True  # Asegura que las cookies solo se envíen en conexiones HTTPS
+    app.config["JWT_COOKIE_SAMESITE"] = "None"  # Permite cookies en solicitudes cruzadas
+
     app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Habilitar en producción
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
     app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
@@ -47,11 +49,13 @@ def create_app(config_name="default"):
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # Configurar CORS con soporte solo para localhost
-    cors.init_app(app, resources={r"/*": {"origins": "http://localhost:3000"}},
-                  supports_credentials=True,
-                  allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
-                  expose_headers="Authorization")
+    # Configurar CORS para producción
+    cors.init_app(app, resources={r"/*": {"origins": [
+        "https://front-end-cafe-planta.vercel.app"  # Dominio del frontend desplegado en Vercel
+    ]}},
+    supports_credentials=True,
+    allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
+    expose_headers="Authorization")
 
     bcrypt.init_app(app)
     jwt.init_app(app)
@@ -75,12 +79,13 @@ def create_app(config_name="default"):
     # MANEJO DE SOLICITUDES OPTIONS PARA CORS
     # ------------------------------------
     @app.before_request
-    def handle_options_requests():
+    def handle_options_request():
         if request.method == 'OPTIONS':
             response = app.make_response('')
-            response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+            # Añade las cabeceras necesarias para CORS
+            response.headers.add("Access-Control-Allow-Origin", request.headers.get("Origin"))
             response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-            response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000")
+            response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
             response.headers.add("Access-Control-Allow-Credentials", "true")
             return response
 
@@ -125,11 +130,19 @@ def create_app(config_name="default"):
     app.register_blueprint(sale)
     app.register_blueprint(cloudinary_bp)
 
+    # Ruta principal para verificar que el backend esté corriendo
+    @app.route("/")
+    def home():
+        return jsonify({"message": "Backend is running!"})
+
     return app
 
+
 # ------------------------------------
-# EJECUCIÓN DE LA APLICACIÓN
+# DEFINICIÓN GLOBAL DE LA APLICACIÓN
 # ------------------------------------
-if __name__ == "__main__": 
-    app = create_app()
-    app.run(host="127.0.0.1", port=3001, debug=True)
+app = create_app()
+
+# Solo para desarrollo local
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=3001)

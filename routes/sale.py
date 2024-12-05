@@ -11,13 +11,48 @@ from models.cafe import Cafe
 from models.dining_area import DiningArea
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
+from threading import Lock
+from sqlalchemy.exc import OperationalError
+sale_lock = Lock()
+sale = Blueprint("sale", __name__, url_prefix="/sale")
+
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.exc import IntegrityError
+from datetime import datetime
+from extensions import db
+from models.sale import Sale
+from models.sale_detail import SaleDetail
+from models.cart import Cart
+from models.cart_item import CartItem
+from models.product import Product
+from models.combo_menu import ComboMenu
+from models.dining_area import DiningArea
 
 sale = Blueprint("sale", __name__, url_prefix="/sale")
+
+
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.exc import IntegrityError
+from datetime import datetime
+from extensions import db
+from models.sale import Sale
+from models.sale_detail import SaleDetail
+from models.cart import Cart
+from models.cart_item import CartItem
+from models.product import Product
+from models.combo_menu import ComboMenu
+from models.dining_area import DiningArea
+
+sale = Blueprint("sale", __name__, url_prefix="/sale")
+
 
 @sale.route("/create", methods=["POST"])
 @jwt_required()
 def create_sale():
-    """Crea una venta, validando el ID de la mesa desde el QR."""
+    """Crea una venta, incluyendo los detalles del carrito como SaleDetail."""
     try:
         data = request.get_json()
         customer_rut = get_jwt_identity()
@@ -36,7 +71,24 @@ def create_sale():
 
         cafe_id = dining_area.cafe_id
 
-        # Crear venta
+        # Verificar que no haya ventas en progreso para este cliente
+        latest_sale = Sale.query.filter_by(customer_rut=customer_rut).order_by(Sale.date.desc()).first()
+        if latest_sale and latest_sale.status != "Entregado":
+            return jsonify({
+                "error": "No puedes realizar un nuevo pedido mientras tu último pedido no haya sido entregado."
+            }), 403
+
+        # Validar existencia del carrito
+        cart = Cart.query.filter_by(id=cart_id, customer_rut=customer_rut).first()
+        if not cart:
+            return jsonify({"error": "Carrito no encontrado"}), 404
+
+        # Verificar que el carrito no esté vacío
+        cart_items = CartItem.query.filter_by(cart_id=cart.id).all()
+        if not cart_items:
+            return jsonify({"error": "El carrito está vacío"}), 400
+
+        # Crear la venta
         sale = Sale(
             date=datetime.now(),
             total_amount=total_amount,
@@ -44,17 +96,48 @@ def create_sale():
             comments=comments,
             customer_rut=customer_rut,
             cafe_id=cafe_id,
-            dining_area_id=dining_area_id
+            dining_area_id=dining_area_id,
         )
-
         db.session.add(sale)
+        db.session.flush()  # Obtener el ID de la venta
+
+        # Agregar detalles desde el carrito
+        for item in cart_items:
+            # Obtener precio según el tipo de item
+            if item.item_type_id == 1:  # Producto
+                product = Product.query.get(item.item_id)
+                unit_price = product.price if product else 0
+            elif item.item_type_id == 2:  # Combo
+                combo = ComboMenu.query.get(item.item_id)
+                unit_price = combo.price if combo else 0
+
+            sale_detail = SaleDetail(
+                sale_id=sale.id,
+                quantity=item.quantity,
+                unit_price=unit_price,
+                item_type_id=item.item_type_id,
+                item_id=item.item_id,
+            )
+            db.session.add(sale_detail)
+
+        # Vaciar el carrito
+        CartItem.query.filter_by(cart_id=cart.id).delete()
+
         db.session.commit()
 
         return jsonify(sale.serialize()), 201
 
     except Exception as e:
         print(f"Error al crear venta: {e}")
+        db.session.rollback()
         return jsonify({"error": "Error al crear la venta"}), 500
+
+
+
+
+
+
+
 
 # Ruta para obtener pedidos en progreso
 @sale.route("/in_progress", methods=["GET"])
