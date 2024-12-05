@@ -29,13 +29,6 @@ def create_sale():
         if not dining_area_id:
             return jsonify({"error": "El ID de la mesa es requerido"}), 400
 
-        # Verificar el estado del último pedido
-        latest_sale = Sale.query.filter_by(customer_rut=customer_rut).order_by(Sale.date.desc()).first()
-        if latest_sale and latest_sale.status != "Entregado":
-            return jsonify({
-                "error": "No puedes realizar un nuevo pedido mientras tu último pedido no haya sido entregado."
-            }), 403
-
         # Verificar existencia de la mesa
         dining_area = DiningArea.query.get(dining_area_id)
         if not dining_area:
@@ -43,10 +36,22 @@ def create_sale():
 
         cafe_id = dining_area.cafe_id
 
+        # Verificar que no haya ventas en progreso para este cliente
+        latest_sale = Sale.query.filter_by(customer_rut=customer_rut).order_by(Sale.date.desc()).first()
+        if latest_sale and latest_sale.status != "Entregado":
+            return jsonify({
+                "error": "No puedes realizar un nuevo pedido mientras tu último pedido no haya sido entregado."
+            }), 403
+
         # Validar existencia del carrito
         cart = Cart.query.filter_by(id=cart_id, customer_rut=customer_rut).first()
         if not cart:
             return jsonify({"error": "Carrito no encontrado"}), 404
+
+        # Verificar que el carrito no esté vacío
+        cart_items = CartItem.query.filter_by(cart_id=cart.id).all()
+        if not cart_items:
+            return jsonify({"error": "El carrito está vacío"}), 400
 
         # Crear la venta
         sale = Sale(
@@ -62,10 +67,6 @@ def create_sale():
         db.session.flush()  # Obtener el ID de la venta
 
         # Agregar detalles desde el carrito
-        cart_items = CartItem.query.filter_by(cart_id=cart.id).all()
-        if not cart_items:
-            return jsonify({"error": "El carrito está vacío"}), 400
-
         for item in cart_items:
             # Obtener precio según el tipo de item
             if item.item_type_id == 1:  # Producto
@@ -93,7 +94,9 @@ def create_sale():
 
     except Exception as e:
         print(f"Error al crear venta: {e}")
+        db.session.rollback()
         return jsonify({"error": "Error al crear la venta"}), 500
+
 
 
 # Ruta para obtener pedidos en progreso
