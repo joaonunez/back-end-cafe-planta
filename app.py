@@ -76,6 +76,20 @@ def create_app(config_name="default"):
         return response
 
     # ------------------------------------
+    # MANEJO DE SOLICITUDES OPTIONS PARA CORS
+    # ------------------------------------
+    @app.before_request
+    def handle_options_request():
+        if request.method == 'OPTIONS':
+            response = app.make_response('')
+            # Añade las cabeceras necesarias para CORS
+            response.headers.add("Access-Control-Allow-Origin", request.headers.get("Origin"))
+            response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+            response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+            response.headers.add("Access-Control-Allow-Credentials", "true")
+            return response
+
+    # ------------------------------------
     # MANEJO DE ERRORES
     # ------------------------------------
     @app.errorhandler(Unauthorized)
