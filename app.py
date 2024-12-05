@@ -61,6 +61,36 @@ def create_app(config_name="default"):
 
     bcrypt.init_app(app)
     jwt.init_app(app)
+    @app.route("/")
+    def home():
+        return """
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Backend Status</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    text-align: center;
+                    margin-top: 50px;
+                    background-color: #f4f4f9;
+                }
+                h1 {
+                    color: #333;
+                }
+                p {
+                    color: #666;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Backend is Running!</h1>
+            <p>Your backend is up and running successfully.</p>
+        </body>
+        </html>
+        """
 
     # ------------------------------------
     # MIDDLEWARE JWT RENOVACIÓN DE TOKENS
@@ -132,6 +162,7 @@ def create_app(config_name="default"):
     app.register_blueprint(cloudinary_bp)
 
     return app
+    
 
 # ------------------------------------
 # EJECUCIÓN DE LA APLICACIÓN
