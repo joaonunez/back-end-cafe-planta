@@ -72,41 +72,39 @@ def create_dining_area():
 def scan_qr():
     """Procesa el contenido de un QR y devuelve información de la mesa."""
     try:
-        print("Inicio del endpoint /scan_qr")  # Debug inicial
+        print("Inicio del endpoint /scan_qr")
         data = request.get_json()
-        print(f"Datos recibidos en la solicitud: {data}")  # Mostrar los datos recibidos
-
+        print(f"Datos recibidos en la solicitud: {data}")
+        
         qr_content = data.get("qr_content")
         if not qr_content:
-            print("Error: El contenido del QR es requerido")
             return jsonify({"error": "El contenido del QR es requerido"}), 400
 
-        # Decodificar el contenido del QR
-        try:
-            qr_data = json.loads(qr_content)
-            print(f"QR decodificado con éxito: {qr_data}")  # Mostrar el contenido del QR decodificado
-        except json.JSONDecodeError:
-            print("Error: El QR no contiene un JSON válido")
-            return jsonify({"error": "El QR no contiene un JSON válido"}), 400
+        # Si qr_content es un string, decodificarlo
+        if isinstance(qr_content, str):
+            try:
+                qr_data = json.loads(qr_content)
+            except json.JSONDecodeError:
+                return jsonify({"error": "El QR no contiene un JSON válido"}), 400
+        elif isinstance(qr_content, dict):
+            qr_data = qr_content  # Ya es un diccionario
+        else:
+            return jsonify({"error": "El QR contiene un formato no válido"}), 400
 
         dining_area_id = qr_data.get("id")
         cafe_id = qr_data.get("cafe_id")
-        print(f"Valores extraídos: dining_area_id={dining_area_id}, cafe_id={cafe_id}")  # Mostrar los valores extraídos
 
         if not dining_area_id or not cafe_id:
-            print("Error: El QR no contiene información válida")
             return jsonify({"error": "El QR no contiene información válida"}), 400
 
         # Buscar la mesa en la base de datos
-        print(f"Buscando mesa en la base de datos con ID {dining_area_id} y cafe_id {cafe_id}")
         dining_area = DiningArea.query.filter_by(id=dining_area_id, cafe_id=cafe_id).first()
         if not dining_area:
-            print("Error: La mesa no existe")
             return jsonify({"error": "La mesa no existe"}), 404
 
-        print(f"Mesa encontrada: {dining_area.serialize()}")  # Mostrar los datos de la mesa encontrada
+        print(f"Mesa encontrada: {dining_area.serialize()}")
         return jsonify(dining_area.serialize()), 200
 
     except Exception as e:
-        print(f"Error inesperado al procesar el QR: {str(e)}")  # Mostrar el error completo
+        print(f"Error inesperado al procesar el QR: {str(e)}")
         return jsonify({"error": "Error interno al procesar el QR", "details": str(e)}), 500
