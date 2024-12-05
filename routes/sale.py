@@ -17,87 +17,112 @@ from sqlalchemy.exc import OperationalError
 sale_lock = Lock()
 sale = Blueprint("sale", __name__, url_prefix="/sale")
 
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.exc import IntegrityError
+from datetime import datetime
+from extensions import db
+from models.sale import Sale
+from models.sale_detail import SaleDetail
+from models.cart import Cart
+from models.cart_item import CartItem
+from models.product import Product
+from models.combo_menu import ComboMenu
+from models.dining_area import DiningArea
+
+sale = Blueprint("sale", __name__, url_prefix="/sale")
+
+
 @sale.route("/create", methods=["POST"])
 @jwt_required()
 def create_sale():
-    customer_rut = get_jwt_identity()
+    """Crea una venta, verificando qr_status para evitar duplicados."""
+    try:
+        customer_rut = get_jwt_identity()
+        data = request.get_json()
 
-    with sale_lock:  # Usar Lock para bloquear concurrencia a nivel de aplicación
-        try:
-            data = request.get_json()
-            total_amount = data.get("total_amount")
-            comments = data.get("comments", "")
-            cart_id = data.get("cart_id")
-            dining_area_id = data.get("dining_area_id")
+        # Datos requeridos
+        total_amount = data.get("total_amount")
+        comments = data.get("comments", "")
+        cart_id = data.get("cart_id")
+        dining_area_id = data.get("dining_area_id")
+        qr_status = data.get("qr_status", "default")  # Estado QR obligatorio
 
-            if not dining_area_id:
-                return jsonify({"error": "El ID de la mesa es requerido"}), 400
+        # Validación del estado QR
+        if qr_status != "processing":
+            return jsonify({"error": "Estado del QR inválido o no permitido"}), 400
 
-            dining_area = DiningArea.query.get(dining_area_id)
-            if not dining_area:
-                return jsonify({"error": "Mesa no encontrada"}), 404
+        # Validar ID de la mesa
+        if not dining_area_id:
+            return jsonify({"error": "El ID de la mesa es requerido"}), 400
 
-            cafe_id = dining_area.cafe_id
+        # Verificar existencia de la mesa
+        dining_area = DiningArea.query.get(dining_area_id)
+        if not dining_area:
+            return jsonify({"error": "Mesa no encontrada"}), 404
 
-            # Bloqueo optimista: verificar si ya hay una venta en curso
-            existing_sale = db.session.query(Sale).with_for_update().filter_by(
-                customer_rut=customer_rut,
-                status="En preparación"
-            ).first()
-            if existing_sale:
-                return jsonify({"error": "Ya tienes una venta en curso."}), 403
+        # Validar si ya hay una venta en curso
+        existing_sale = Sale.query.filter_by(customer_rut=customer_rut, status="En preparación").first()
+        if existing_sale:
+            return jsonify({"error": "Ya tienes una venta en curso."}), 403
 
-            cart = Cart.query.filter_by(id=cart_id, customer_rut=customer_rut).first()
-            if not cart:
-                return jsonify({"error": "Carrito no encontrado"}), 404
+        # Validar existencia del carrito
+        cart = Cart.query.filter_by(id=cart_id, customer_rut=customer_rut).first()
+        if not cart:
+            return jsonify({"error": "Carrito no encontrado"}), 404
 
-            cart_items = CartItem.query.filter_by(cart_id=cart.id).all()
-            if not cart_items:
-                return jsonify({"error": "El carrito está vacío"}), 400
+        # Validar que el carrito no esté vacío
+        cart_items = CartItem.query.filter_by(cart_id=cart.id).all()
+        if not cart_items:
+            return jsonify({"error": "El carrito está vacío"}), 400
 
-            # Crear la venta dentro de una transacción
-            sale = Sale(
-                date=datetime.now(),
-                total_amount=total_amount,
-                status="En preparación",
-                comments=comments,
-                customer_rut=customer_rut,
-                cafe_id=cafe_id,
-                dining_area_id=dining_area_id,
+        # Crear venta
+        sale = Sale(
+            date=datetime.now(),
+            total_amount=total_amount,
+            status="En preparación",
+            comments=comments,
+            customer_rut=customer_rut,
+            cafe_id=dining_area.cafe_id,
+            dining_area_id=dining_area_id,
+        )
+        db.session.add(sale)
+        db.session.flush()
+
+        # Agregar detalles desde el carrito
+        for item in cart_items:
+            unit_price = 0
+            if item.item_type_id == 1:  # Producto
+                product = Product.query.get(item.item_id)
+                unit_price = product.price if product else 0
+            elif item.item_type_id == 2:  # Combo
+                combo = ComboMenu.query.get(item.item_id)
+                unit_price = combo.price if combo else 0
+
+            sale_detail = SaleDetail(
+                sale_id=sale.id,
+                quantity=item.quantity,
+                unit_price=unit_price,
+                item_type_id=item.item_type_id,
+                item_id=item.item_id,
             )
-            db.session.add(sale)
-            db.session.flush()
+            db.session.add(sale_detail)
 
-            for item in cart_items:
-                if item.item_type_id == 1:
-                    product = Product.query.get(item.item_id)
-                    unit_price = product.price if product else 0
-                elif item.item_type_id == 2:
-                    combo = ComboMenu.query.get(item.item_id)
-                    unit_price = combo.price if combo else 0
+        # Vaciar el carrito
+        CartItem.query.filter_by(cart_id=cart.id).delete()
 
-                sale_detail = SaleDetail(
-                    sale_id=sale.id,
-                    quantity=item.quantity,
-                    unit_price=unit_price,
-                    item_type_id=item.item_type_id,
-                    item_id=item.item_id,
-                )
-                db.session.add(sale_detail)
+        db.session.commit()
 
-            CartItem.query.filter_by(cart_id=cart.id).delete()
+        return jsonify(sale.serialize()), 201
 
-            db.session.commit()
-            return jsonify(sale.serialize()), 201
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"error": "Venta duplicada detectada, intente nuevamente"}), 409
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error al crear venta: {e}")
+        return jsonify({"error": "Error al crear la venta"}), 500
 
-        except OperationalError as e:
-            db.session.rollback()
-            print(f"Error de concurrencia: {e}")
-            return jsonify({"error": "Otra operación está en curso, inténtelo nuevamente."}), 409
-        except Exception as e:
-            db.session.rollback()
-            print(f"Error al crear venta: {e}")
-            return jsonify({"error": "Error al crear la venta"}), 500
 
 
 
