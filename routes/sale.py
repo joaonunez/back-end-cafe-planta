@@ -12,7 +12,8 @@ from models.dining_area import DiningArea
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
-
+from threading import Lock
+sale_lock = Lock()
 sale = Blueprint("sale", __name__, url_prefix="/sale")
 
 @sale.route("/create", methods=["POST"])
