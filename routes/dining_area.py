@@ -78,7 +78,11 @@ def scan_qr():
             return jsonify({"error": "El contenido del QR es requerido"}), 400
 
         # Decodificar el contenido del QR
-        qr_data = json.loads(qr_content)
+        try:
+            qr_data = json.loads(qr_content)
+        except json.JSONDecodeError:
+            return jsonify({"error": "El QR no contiene un JSON válido"}), 400
+
         dining_area_id = qr_data.get("id")
         cafe_id = qr_data.get("cafe_id")
 
@@ -94,4 +98,4 @@ def scan_qr():
 
     except Exception as e:
         print(f"Error al procesar el QR: {str(e)}")
-        return jsonify({"error": "Error al procesar el QR", "details": str(e)}), 500
+        return jsonify({"error": "Error interno al procesar el QR", "details": str(e)}), 500
