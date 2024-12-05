@@ -19,83 +19,85 @@ sale = Blueprint("sale", __name__, url_prefix="/sale")
 @jwt_required()
 def create_sale():
     """Crea una venta, manejando concurrencia entre instancias."""
-    try:
-        customer_rut = get_jwt_identity()
-        data = request.get_json()
-        total_amount = data.get("total_amount")
-        comments = data.get("comments", "")
-        cart_id = data.get("cart_id")
-        dining_area_id = data.get("dining_area_id")
+    customer_rut = get_jwt_identity()
 
-        if not dining_area_id:
-            return jsonify({"error": "El ID de la mesa es requerido"}), 400
+    with sale_lock:  # Bloqueo para evitar ventas duplicadas simultáneamente
+        try:
+            data = request.get_json()
+            total_amount = data.get("total_amount")
+            comments = data.get("comments", "")
+            cart_id = data.get("cart_id")
+            dining_area_id = data.get("dining_area_id")
 
-        # Verificar existencia de la mesa
-        dining_area = DiningArea.query.get(dining_area_id)
-        if not dining_area:
-            return jsonify({"error": "Mesa no encontrada"}), 404
+            if not dining_area_id:
+                return jsonify({"error": "El ID de la mesa es requerido"}), 400
 
-        cafe_id = dining_area.cafe_id
+            # Verificar existencia de la mesa
+            dining_area = DiningArea.query.get(dining_area_id)
+            if not dining_area:
+                return jsonify({"error": "Mesa no encontrada"}), 404
 
-        # Validar si ya hay una venta en curso
-        existing_sale = Sale.query.filter_by(customer_rut=customer_rut, status="En preparación").first()
-        if existing_sale:
-            return jsonify({"error": "Ya tienes una venta en curso."}), 403
+            cafe_id = dining_area.cafe_id
 
-        # Validar existencia del carrito
-        cart = Cart.query.filter_by(id=cart_id, customer_rut=customer_rut).first()
-        if not cart:
-            return jsonify({"error": "Carrito no encontrado"}), 404
+            # Validar si ya hay una venta en curso
+            existing_sale = Sale.query.filter_by(customer_rut=customer_rut, status="En preparación").first()
+            if existing_sale:
+                return jsonify({"error": "Ya tienes una venta en curso."}), 403
 
-        # Validar que el carrito no esté vacío
-        cart_items = CartItem.query.filter_by(cart_id=cart.id).all()
-        if not cart_items:
-            return jsonify({"error": "El carrito está vacío"}), 400
+            # Validar existencia del carrito
+            cart = Cart.query.filter_by(id=cart_id, customer_rut=customer_rut).first()
+            if not cart:
+                return jsonify({"error": "Carrito no encontrado"}), 404
 
-        # Crear venta
-        sale = Sale(
-            date=datetime.now(),
-            total_amount=total_amount,
-            status="En preparación",
-            comments=comments,
-            customer_rut=customer_rut,
-            cafe_id=cafe_id,
-            dining_area_id=dining_area_id,
-        )
-        db.session.add(sale)
-        db.session.flush()
+            # Validar que el carrito no esté vacío
+            cart_items = CartItem.query.filter_by(cart_id=cart.id).all()
+            if not cart_items:
+                return jsonify({"error": "El carrito está vacío"}), 400
 
-        # Agregar detalles desde el carrito
-        for item in cart_items:
-            if item.item_type_id == 1:
-                product = Product.query.get(item.item_id)
-                unit_price = product.price if product else 0
-            elif item.item_type_id == 2:
-                combo = ComboMenu.query.get(item.item_id)
-                unit_price = combo.price if combo else 0
-
-            sale_detail = SaleDetail(
-                sale_id=sale.id,
-                quantity=item.quantity,
-                unit_price=unit_price,
-                item_type_id=item.item_type_id,
-                item_id=item.item_id,
+            # Crear venta
+            sale = Sale(
+                date=datetime.now(),
+                total_amount=total_amount,
+                status="En preparación",
+                comments=comments,
+                customer_rut=customer_rut,
+                cafe_id=cafe_id,
+                dining_area_id=dining_area_id,
             )
-            db.session.add(sale_detail)
+            db.session.add(sale)
+            db.session.flush()
 
-        # Vaciar el carrito
-        CartItem.query.filter_by(cart_id=cart.id).delete()
+            # Agregar detalles desde el carrito
+            for item in cart_items:
+                if item.item_type_id == 1:
+                    product = Product.query.get(item.item_id)
+                    unit_price = product.price if product else 0
+                elif item.item_type_id == 2:
+                    combo = ComboMenu.query.get(item.item_id)
+                    unit_price = combo.price if combo else 0
 
-        db.session.commit()
-        return jsonify(sale.serialize()), 201
+                sale_detail = SaleDetail(
+                    sale_id=sale.id,
+                    quantity=item.quantity,
+                    unit_price=unit_price,
+                    item_type_id=item.item_type_id,
+                    item_id=item.item_id,
+                )
+                db.session.add(sale_detail)
 
-    except IntegrityError:
-        db.session.rollback()
-        return jsonify({"error": "Venta duplicada detectada, intente nuevamente"}), 409
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error al crear venta: {e}")
-        return jsonify({"error": "Error al crear la venta"}), 500
+            # Vaciar el carrito
+            CartItem.query.filter_by(cart_id=cart.id).delete()
+
+            db.session.commit()
+            return jsonify(sale.serialize()), 201
+
+        except IntegrityError:
+            db.session.rollback()
+            return jsonify({"error": "Venta duplicada detectada, intente nuevamente"}), 409
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error al crear venta: {e}")
+            return jsonify({"error": "Error al crear la venta"}), 500
 
 
 

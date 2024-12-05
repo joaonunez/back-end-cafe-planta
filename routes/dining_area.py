@@ -113,3 +113,4 @@ def scan_qr():
         except Exception as e:
             print(f"Error inesperado al procesar el QR: {str(e)}")
             return jsonify({"error": "Error interno al procesar el QR", "details": str(e)}), 500
+
