@@ -52,80 +52,58 @@ sale = Blueprint("sale", __name__, url_prefix="/sale")
 @sale.route("/create", methods=["POST"])
 @jwt_required()
 def create_sale():
-    """Crea una venta, verificando qr_status para evitar duplicados."""
+    """Crea una venta, incluyendo los detalles del carrito como SaleDetail."""
     try:
-        customer_rut = get_jwt_identity()
         data = request.get_json()
-
-        # Log inicial con datos recibidos
-        print(f"Inicio del endpoint /sale/create - Cliente: {customer_rut}")
-        print(f"Datos recibidos: {data}")
-
-        # Datos requeridos
+        customer_rut = get_jwt_identity()
         total_amount = data.get("total_amount")
         comments = data.get("comments", "")
         cart_id = data.get("cart_id")
         dining_area_id = data.get("dining_area_id")
-        qr_status = data.get("qr_status", "default")  # Estado QR obligatorio
 
-        # Validación del estado QR
-        if qr_status not in ["processing", "success"]:  # Manejar reintentos con "success"
-            print(f"Error: Estado QR inválido o no permitido: {qr_status}")
-            return jsonify({"error": f"Estado del QR no válido ({qr_status})"}), 400
-
-        # Validar ID de la mesa
         if not dining_area_id:
-            print("Error: ID de la mesa no proporcionado")
             return jsonify({"error": "El ID de la mesa es requerido"}), 400
 
         # Verificar existencia de la mesa
         dining_area = DiningArea.query.get(dining_area_id)
         if not dining_area:
-            print(f"Error: Mesa con ID {dining_area_id} no encontrada")
             return jsonify({"error": "Mesa no encontrada"}), 404
 
-        print(f"Mesa encontrada: {dining_area.serialize()}")
+        cafe_id = dining_area.cafe_id
 
-        # Validar si ya hay una venta en curso
-        existing_sale = Sale.query.filter_by(customer_rut=customer_rut, status="En preparación").first()
-        if existing_sale:
-            print(f"Error: Ya existe una venta en curso para el cliente {customer_rut}")
-            return jsonify({"error": "Ya tienes una venta en curso."}), 403
+        # Verificar que no haya ventas en progreso para este cliente
+        latest_sale = Sale.query.filter_by(customer_rut=customer_rut).order_by(Sale.date.desc()).first()
+        if latest_sale and latest_sale.status != "Entregado":
+            return jsonify({
+                "error": "No puedes realizar un nuevo pedido mientras tu último pedido no haya sido entregado."
+            }), 403
 
         # Validar existencia del carrito
         cart = Cart.query.filter_by(id=cart_id, customer_rut=customer_rut).first()
         if not cart:
-            error_message = f"Carrito con ID {cart_id} no encontrado para el cliente {customer_rut}."
-            print(error_message)
-            return jsonify({"error": error_message}), 404
+            return jsonify({"error": "Carrito no encontrado"}), 404
 
-
-        # Validar que el carrito no esté vacío
+        # Verificar que el carrito no esté vacío
         cart_items = CartItem.query.filter_by(cart_id=cart.id).all()
         if not cart_items:
-            print(f"Error: El carrito con ID {cart.id} está vacío")
             return jsonify({"error": "El carrito está vacío"}), 400
 
-        print(f"Carrito validado: {len(cart_items)} items encontrados")
-
-        # Crear venta
+        # Crear la venta
         sale = Sale(
             date=datetime.now(),
             total_amount=total_amount,
             status="En preparación",
             comments=comments,
             customer_rut=customer_rut,
-            cafe_id=dining_area.cafe_id,
+            cafe_id=cafe_id,
             dining_area_id=dining_area_id,
         )
         db.session.add(sale)
-        db.session.flush()
-
-        print(f"Venta creada con ID: {sale.id}")
+        db.session.flush()  # Obtener el ID de la venta
 
         # Agregar detalles desde el carrito
         for item in cart_items:
-            unit_price = 0
+            # Obtener precio según el tipo de item
             if item.item_type_id == 1:  # Producto
                 product = Product.query.get(item.item_id)
                 unit_price = product.price if product else 0
@@ -141,25 +119,19 @@ def create_sale():
                 item_id=item.item_id,
             )
             db.session.add(sale_detail)
-            print(f"Detalle de venta añadido: {sale_detail}")
 
         # Vaciar el carrito
         CartItem.query.filter_by(cart_id=cart.id).delete()
-        print(f"Carrito con ID {cart.id} vaciado")
 
         db.session.commit()
 
-        print(f"Venta con ID {sale.id} confirmada y registrada exitosamente")
         return jsonify(sale.serialize()), 201
 
-    except IntegrityError as e:
-        db.session.rollback()
-        print(f"Error de integridad al crear la venta: {e}")
-        return jsonify({"error": "Venta duplicada detectada, intente nuevamente"}), 409
     except Exception as e:
+        print(f"Error al crear venta: {e}")
         db.session.rollback()
-        print(f"Error inesperado al crear la venta: {e}")
         return jsonify({"error": "Error al crear la venta"}), 500
+
 
 
 
