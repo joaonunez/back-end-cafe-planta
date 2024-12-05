@@ -33,6 +33,22 @@ from models.dining_area import DiningArea
 sale = Blueprint("sale", __name__, url_prefix="/sale")
 
 
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.exc import IntegrityError
+from datetime import datetime
+from extensions import db
+from models.sale import Sale
+from models.sale_detail import SaleDetail
+from models.cart import Cart
+from models.cart_item import CartItem
+from models.product import Product
+from models.combo_menu import ComboMenu
+from models.dining_area import DiningArea
+
+sale = Blueprint("sale", __name__, url_prefix="/sale")
+
+
 @sale.route("/create", methods=["POST"])
 @jwt_required()
 def create_sale():
@@ -40,6 +56,10 @@ def create_sale():
     try:
         customer_rut = get_jwt_identity()
         data = request.get_json()
+
+        # Log inicial con datos recibidos
+        print(f"Inicio del endpoint /sale/create - Cliente: {customer_rut}")
+        print(f"Datos recibidos: {data}")
 
         # Datos requeridos
         total_amount = data.get("total_amount")
@@ -50,31 +70,41 @@ def create_sale():
 
         # Validación del estado QR
         if qr_status != "processing":
+            print("Error: Estado QR inválido o no permitido")
             return jsonify({"error": "Estado del QR inválido o no permitido"}), 400
 
         # Validar ID de la mesa
         if not dining_area_id:
+            print("Error: ID de la mesa no proporcionado")
             return jsonify({"error": "El ID de la mesa es requerido"}), 400
 
         # Verificar existencia de la mesa
         dining_area = DiningArea.query.get(dining_area_id)
         if not dining_area:
+            print(f"Error: Mesa con ID {dining_area_id} no encontrada")
             return jsonify({"error": "Mesa no encontrada"}), 404
+
+        print(f"Mesa encontrada: {dining_area.serialize()}")
 
         # Validar si ya hay una venta en curso
         existing_sale = Sale.query.filter_by(customer_rut=customer_rut, status="En preparación").first()
         if existing_sale:
+            print(f"Error: Ya existe una venta en curso para el cliente {customer_rut}")
             return jsonify({"error": "Ya tienes una venta en curso."}), 403
 
         # Validar existencia del carrito
         cart = Cart.query.filter_by(id=cart_id, customer_rut=customer_rut).first()
         if not cart:
+            print(f"Error: Carrito con ID {cart_id} no encontrado para el cliente {customer_rut}")
             return jsonify({"error": "Carrito no encontrado"}), 404
 
         # Validar que el carrito no esté vacío
         cart_items = CartItem.query.filter_by(cart_id=cart.id).all()
         if not cart_items:
+            print(f"Error: El carrito con ID {cart.id} está vacío")
             return jsonify({"error": "El carrito está vacío"}), 400
+
+        print(f"Carrito validado: {len(cart_items)} items encontrados")
 
         # Crear venta
         sale = Sale(
@@ -88,6 +118,8 @@ def create_sale():
         )
         db.session.add(sale)
         db.session.flush()
+
+        print(f"Venta creada con ID: {sale.id}")
 
         # Agregar detalles desde el carrito
         for item in cart_items:
@@ -107,21 +139,26 @@ def create_sale():
                 item_id=item.item_id,
             )
             db.session.add(sale_detail)
+            print(f"Detalle de venta añadido: {sale_detail}")
 
         # Vaciar el carrito
         CartItem.query.filter_by(cart_id=cart.id).delete()
+        print(f"Carrito con ID {cart.id} vaciado")
 
         db.session.commit()
 
+        print(f"Venta con ID {sale.id} confirmada y registrada exitosamente")
         return jsonify(sale.serialize()), 201
 
-    except IntegrityError:
+    except IntegrityError as e:
         db.session.rollback()
+        print(f"Error de integridad al crear la venta: {e}")
         return jsonify({"error": "Venta duplicada detectada, intente nuevamente"}), 409
     except Exception as e:
         db.session.rollback()
-        print(f"Error al crear venta: {e}")
+        print(f"Error inesperado al crear la venta: {e}")
         return jsonify({"error": "Error al crear la venta"}), 500
+
 
 
 
