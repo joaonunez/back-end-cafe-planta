@@ -49,48 +49,16 @@ def create_app(config_name="default"):
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # Configurar CORS con soporte solo para localhost
+    # Configurar CORS para producción
     cors.init_app(app, resources={r"/*": {"origins": [
-    "http://localhost:3000",  # Para pruebas locales
-    "https://front-end-cafe-planta.vercel.app"  # Dominio del frontend desplegado en Vercel
+        "https://front-end-cafe-planta.vercel.app"  # Dominio del frontend desplegado en Vercel
     ]}},
     supports_credentials=True,
     allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
     expose_headers="Authorization")
 
-
     bcrypt.init_app(app)
     jwt.init_app(app)
-    @app.route("/")
-    def home():
-        return """
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Backend Status</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    text-align: center;
-                    margin-top: 50px;
-                    background-color: #f4f4f9;
-                }
-                h1 {
-                    color: #333;
-                }
-                p {
-                    color: #666;
-                }
-            </style>
-        </head>
-        <body>
-            <h1>Backend is Running!</h1>
-            <p>Your backend is up and running successfully.</p>
-        </body>
-        </html>
-        """
 
     # ------------------------------------
     # MIDDLEWARE JWT RENOVACIÓN DE TOKENS
@@ -106,19 +74,6 @@ def create_app(config_name="default"):
         except (RuntimeError, KeyError):
             pass  # Ignorar si no hay token o no se puede actualizar
         return response
-
-    # ------------------------------------
-    # MANEJO DE SOLICITUDES OPTIONS PARA CORS
-    # ------------------------------------
-    @app.before_request
-    def handle_options_requests():
-        if request.method == 'OPTIONS':
-            response = app.make_response('')
-            response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
-            response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-            response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000")
-            response.headers.add("Access-Control-Allow-Credentials", "true")
-            return response
 
     # ------------------------------------
     # MANEJO DE ERRORES
