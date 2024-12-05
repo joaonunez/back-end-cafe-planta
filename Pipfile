@@ -17,6 +17,7 @@ bcrypt = "*"
 flask-bcrypt = "*"
 cloudinary = "*"
 werkzeug = "*"
+qrcode = {extras = ["pil"], version = "*"}
 
 [dev-packages]
 

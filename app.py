@@ -29,7 +29,6 @@ def create_app(config_name="default"):
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-
     # ------------------------------------
     # CONFIGURACIÓN JWT
     # ------------------------------------
@@ -48,7 +47,7 @@ def create_app(config_name="default"):
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # Configurar CORS con soporte para credenciales
+    # Configurar CORS con soporte solo para localhost
     cors.init_app(app, resources={r"/*": {"origins": "http://localhost:3000"}},
                   supports_credentials=True,
                   allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
@@ -133,4 +132,4 @@ def create_app(config_name="default"):
 # ------------------------------------
 if __name__ == "__main__": 
     app = create_app()
-    app.run(host="0.0.0.0", port=3001, debug=True)
+    app.run(host="127.0.0.1", port=3001, debug=True)
