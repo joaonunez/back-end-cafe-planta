@@ -5,8 +5,12 @@ from models.dining_area import DiningArea
 import qrcode
 import cloudinary.uploader
 import io
+import threading
 
 dining_area = Blueprint("dining_area", __name__, url_prefix="/dining_area")
+
+# Lock para evitar solicitudes simultáneas en el endpoint /scan_qr
+qr_lock = threading.Lock()
 
 @dining_area.route("/list", methods=["GET"])
 def list_dining_areas():
@@ -71,40 +75,41 @@ def create_dining_area():
 @dining_area.route("/scan_qr", methods=["POST"])
 def scan_qr():
     """Procesa el contenido de un QR y devuelve información de la mesa."""
-    try:
-        print("Inicio del endpoint /scan_qr")
-        data = request.get_json()
-        print(f"Datos recibidos en la solicitud: {data}")
-        
-        qr_content = data.get("qr_content")
-        if not qr_content:
-            return jsonify({"error": "El contenido del QR es requerido"}), 400
+    with qr_lock:  # Bloqueo para evitar solicitudes simultáneas
+        try:
+            print("Inicio del endpoint /scan_qr")
+            data = request.get_json()
+            print(f"Datos recibidos en la solicitud: {data}")
+            
+            qr_content = data.get("qr_content")
+            if not qr_content:
+                return jsonify({"error": "El contenido del QR es requerido"}), 400
 
-        # Si qr_content es un string, decodificarlo
-        if isinstance(qr_content, str):
-            try:
-                qr_data = json.loads(qr_content)
-            except json.JSONDecodeError:
-                return jsonify({"error": "El QR no contiene un JSON válido"}), 400
-        elif isinstance(qr_content, dict):
-            qr_data = qr_content  # Ya es un diccionario
-        else:
-            return jsonify({"error": "El QR contiene un formato no válido"}), 400
+            # Si qr_content es un string, decodificarlo
+            if isinstance(qr_content, str):
+                try:
+                    qr_data = json.loads(qr_content)
+                except json.JSONDecodeError:
+                    return jsonify({"error": "El QR no contiene un JSON válido"}), 400
+            elif isinstance(qr_content, dict):
+                qr_data = qr_content  # Ya es un diccionario
+            else:
+                return jsonify({"error": "El QR contiene un formato no válido"}), 400
 
-        dining_area_id = qr_data.get("id")
-        cafe_id = qr_data.get("cafe_id")
+            dining_area_id = qr_data.get("id")
+            cafe_id = qr_data.get("cafe_id")
 
-        if not dining_area_id or not cafe_id:
-            return jsonify({"error": "El QR no contiene información válida"}), 400
+            if not dining_area_id or not cafe_id:
+                return jsonify({"error": "El QR no contiene información válida"}), 400
 
-        # Buscar la mesa en la base de datos
-        dining_area = DiningArea.query.filter_by(id=dining_area_id, cafe_id=cafe_id).first()
-        if not dining_area:
-            return jsonify({"error": "La mesa no existe"}), 404
+            # Buscar la mesa en la base de datos
+            dining_area = DiningArea.query.filter_by(id=dining_area_id, cafe_id=cafe_id).first()
+            if not dining_area:
+                return jsonify({"error": "La mesa no existe"}), 404
 
-        print(f"Mesa encontrada: {dining_area.serialize()}")
-        return jsonify(dining_area.serialize()), 200
+            print(f"Mesa encontrada: {dining_area.serialize()}")
+            return jsonify(dining_area.serialize()), 200
 
-    except Exception as e:
-        print(f"Error inesperado al procesar el QR: {str(e)}")
-        return jsonify({"error": "Error interno al procesar el QR", "details": str(e)}), 500
+        except Exception as e:
+            print(f"Error inesperado al procesar el QR: {str(e)}")
+            return jsonify({"error": "Error interno al procesar el QR", "details": str(e)}), 500
