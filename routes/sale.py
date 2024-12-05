@@ -138,6 +138,7 @@ def create_sale():
 
 
 
+
 # Ruta para obtener pedidos en progreso
 @sale.route("/in_progress", methods=["GET"])
 @jwt_required()
