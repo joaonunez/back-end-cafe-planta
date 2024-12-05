@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, json
 from extensions import db
 from models.dining_area import DiningArea
 import qrcode
@@ -29,8 +29,8 @@ def create_dining_area():
         if not number or not cafe_id:
             return jsonify({"error": "Número de mesa y ID del café son requeridos"}), 400
 
-        # Crear contenido del QR
-        qr_data = f"Mesa ID: {number}, Café ID: {cafe_id}"
+        # Crear contenido del QR en formato JSON
+        qr_data = json.dumps({"id": number, "number": number, "cafe_id": cafe_id})
         qr_image = qrcode.make(qr_data)
 
         # Guardar el QR en memoria
@@ -61,4 +61,5 @@ def create_dining_area():
     except Exception as e:
         print(f"Error al crear la mesa: {str(e)}")
         return jsonify({"error": "Error al crear la mesa", "details": str(e)}), 500
+
 
