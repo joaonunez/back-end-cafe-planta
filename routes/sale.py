@@ -11,16 +11,17 @@ from models.cafe import Cafe
 from models.dining_area import DiningArea
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 
 sale = Blueprint("sale", __name__, url_prefix="/sale")
 
 @sale.route("/create", methods=["POST"])
 @jwt_required()
 def create_sale():
-    """Crea una venta, incluyendo los detalles del carrito como SaleDetail."""
+    """Crea una venta, manejando concurrencia entre instancias."""
     try:
-        data = request.get_json()
         customer_rut = get_jwt_identity()
+        data = request.get_json()
         total_amount = data.get("total_amount")
         comments = data.get("comments", "")
         cart_id = data.get("cart_id")
@@ -36,24 +37,22 @@ def create_sale():
 
         cafe_id = dining_area.cafe_id
 
-        # Verificar que no haya ventas en progreso para este cliente
-        latest_sale = Sale.query.filter_by(customer_rut=customer_rut).order_by(Sale.date.desc()).first()
-        if latest_sale and latest_sale.status != "Entregado":
-            return jsonify({
-                "error": "No puedes realizar un nuevo pedido mientras tu último pedido no haya sido entregado."
-            }), 403
+        # Validar si ya hay una venta en curso
+        existing_sale = Sale.query.filter_by(customer_rut=customer_rut, status="En preparación").first()
+        if existing_sale:
+            return jsonify({"error": "Ya tienes una venta en curso."}), 403
 
         # Validar existencia del carrito
         cart = Cart.query.filter_by(id=cart_id, customer_rut=customer_rut).first()
         if not cart:
             return jsonify({"error": "Carrito no encontrado"}), 404
 
-        # Verificar que el carrito no esté vacío
+        # Validar que el carrito no esté vacío
         cart_items = CartItem.query.filter_by(cart_id=cart.id).all()
         if not cart_items:
             return jsonify({"error": "El carrito está vacío"}), 400
 
-        # Crear la venta
+        # Crear venta
         sale = Sale(
             date=datetime.now(),
             total_amount=total_amount,
@@ -64,15 +63,14 @@ def create_sale():
             dining_area_id=dining_area_id,
         )
         db.session.add(sale)
-        db.session.flush()  # Obtener el ID de la venta
+        db.session.flush()
 
         # Agregar detalles desde el carrito
         for item in cart_items:
-            # Obtener precio según el tipo de item
-            if item.item_type_id == 1:  # Producto
+            if item.item_type_id == 1:
                 product = Product.query.get(item.item_id)
                 unit_price = product.price if product else 0
-            elif item.item_type_id == 2:  # Combo
+            elif item.item_type_id == 2:
                 combo = ComboMenu.query.get(item.item_id)
                 unit_price = combo.price if combo else 0
 
@@ -89,12 +87,14 @@ def create_sale():
         CartItem.query.filter_by(cart_id=cart.id).delete()
 
         db.session.commit()
-
         return jsonify(sale.serialize()), 201
 
-    except Exception as e:
-        print(f"Error al crear venta: {e}")
+    except IntegrityError:
         db.session.rollback()
+        return jsonify({"error": "Venta duplicada detectada, intente nuevamente"}), 409
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error al crear venta: {e}")
         return jsonify({"error": "Error al crear la venta"}), 500
 
 
