@@ -36,8 +36,10 @@ def create_app(config_name="default"):
     app.config["SECRET_KEY"] = "super_super_secret"
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]  # Usar cookies para tokens
     app.config["JWT_ACCESS_COOKIE_PATH"] = "/"  # Ruta de la cookie de acceso
-    app.config["JWT_COOKIE_SECURE"] = True  # Asegura que las cookies solo se envíen en conexiones HTTPS
-    app.config["JWT_COOKIE_SAMESITE"] = "None"  # Permite cookies en solicitudes cruzadas
+
+    # Ajustes para entorno de desarrollo
+    app.config["JWT_COOKIE_SECURE"] = False  # No requiere HTTPS en local
+    app.config["JWT_COOKIE_SAMESITE"] = "Lax"  # Permite solicitudes locales
 
     app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Habilitar en producción
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
@@ -49,9 +51,9 @@ def create_app(config_name="default"):
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # Configurar CORS para producción
+    # Configurar CORS para entorno de desarrollo
     cors.init_app(app, resources={r"/*": {"origins": [
-        "https://front-end-cafe-planta.vercel.app"  # Dominio del frontend desplegado en Vercel
+        "http://localhost:3000"  # Dominio del frontend local
     ]}},
     supports_credentials=True,
     allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
@@ -133,7 +135,7 @@ def create_app(config_name="default"):
     # Ruta principal para verificar que el backend esté corriendo
     @app.route("/")
     def home():
-        return jsonify({"message": "Backend is running!"})
+        return jsonify({"message": "Backend is running on localhost:3001!"})
 
     return app
 
@@ -145,4 +147,4 @@ app = create_app()
 
 # Solo para desarrollo local
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=3001)
+    app.run(host="0.0.0.0", port=3001, debug=True)
