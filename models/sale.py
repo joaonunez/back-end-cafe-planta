@@ -38,4 +38,5 @@ class Sale(db.Model):
             "waiter_rut": self.waiter_rut,
             "waiter_name": f"{self.waiter.first_name} {self.waiter.last_name_father}" if self.waiter else "Aún sin asignar",
             "dining_area_id": self.dining_area_id,
+            "dining_area_number": self.dining_area.number
         }
