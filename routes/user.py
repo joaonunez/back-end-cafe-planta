@@ -80,3 +80,35 @@ def get_users_on_system():
     except Exception as e:
         print("Error al obtener usuarios en el sistema:", e)
         return jsonify({"error": "Error al obtener usuarios"}), 500
+
+
+@user.route("/edit/<string:rut>", methods=["PUT"])
+@jwt_required()
+def edit_user(rut):
+    # Obtenemos la identidad del JWT
+    current_user_rut = get_jwt_identity()
+    current_user = User.query.filter_by(rut=current_user_rut).first()
+
+    if not current_user or current_user.role_id != 1:
+        return jsonify({"error": "No está autorizado para editar usuarios"}), 403
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No se recibieron datos para actualizar"}), 400
+
+    user_to_edit = User.query.filter_by(rut=rut).first()
+    if not user_to_edit:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+
+    # Lista de campos permitidos para actualizar
+    allowed_fields = ["first_name", "last_name_father", "last_name_mother", "username", "email", "role_id", "cafe_id"]
+    for field in allowed_fields:
+        if field in data and data[field] is not None:
+            setattr(user_to_edit, field, data[field])
+
+    try:
+        db.session.commit()
+        return jsonify({"message": "Usuario actualizado exitosamente", "user": user_to_edit.serialize()}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Error al actualizar el usuario: {str(e)}"}), 500
