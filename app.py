@@ -23,10 +23,11 @@ def create_app(config_name="default"):
     # ------------------------------------
     # CONFIGURACIÓN DE BASE DE DATOS
     # ------------------------------------
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-        "DATABASE_URL",
-        "mysql+pymysql://cjo104346_admin:jcg6To$(EHU$@190.107.177.34:3306/cjo104346_cafeplanta"
-    )
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        raise RuntimeError("DATABASE_URL no está configurado. Asegúrate de definirla en tu entorno de Vercel.")
+    
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # ------------------------------------
@@ -44,8 +45,11 @@ def create_app(config_name="default"):
     # ------------------------------------
     # INICIALIZACIÓN DE EXTENSIONES
     # ------------------------------------
-    db.init_app(app)
-    migrate.init_app(app, db)
+    try:
+        db.init_app(app)
+        migrate.init_app(app, db)
+    except Exception as e:
+        raise RuntimeError(f"Error inicializando la base de datos: {e}")
 
     cors.init_app(app, resources={r"/*": {"origins": "https://front-end-cafe-planta.vercel.app"}},
                   supports_credentials=True,
@@ -129,6 +133,7 @@ def create_app(config_name="default"):
 # ------------------------------------
 # EJECUCIÓN DE LA APLICACIÓN
 # ------------------------------------
+app = create_app()  # Cambiado para asegurar que Vercel lo detecte
+
 if __name__ == "__main__": 
-    app = create_app()
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 3001)))
