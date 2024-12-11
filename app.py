@@ -8,7 +8,7 @@ from routes import (benefit, benefit_user, cafe, cart, product_rating,
                     dining_area, country, product, state, role, 
                     item_type, user, sale, cloudinary_bp)
 from flask_jwt_extended import (create_access_token, get_jwt, 
-                                get_jwt_identity, set_access_cookies)
+                                get_jwt_identity, set_access_cookies, unset_jwt_cookies)
 from werkzeug.exceptions import Unauthorized
 from datetime import datetime, timedelta, timezone
 import cloudinary
@@ -37,7 +37,7 @@ def create_app(config_name="default"):
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "super_super_secret")
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]  # Usar cookies para tokens
     app.config["JWT_ACCESS_COOKIE_PATH"] = "/"  # Ruta de la cookie de acceso
-    app.config["JWT_COOKIE_SECURE"] = True  # Cambiar a True en producción para usar HTTPS
+    app.config["JWT_COOKIE_SECURE"] = os.getenv("FLASK_ENV", "production") == "production"  # Cambiar a True en producción
     app.config["JWT_COOKIE_CSRF_PROTECT"] = True  # Habilitar en producción
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
     app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
@@ -52,9 +52,7 @@ def create_app(config_name="default"):
         raise RuntimeError(f"Error inicializando la base de datos: {e}")
 
     cors.init_app(app, resources={r"/*": {"origins": "https://front-end-cafe-planta.vercel.app"}},
-                  supports_credentials=True,
-                  allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
-                  expose_headers="Authorization")
+                  supports_credentials=True)
 
     bcrypt.init_app(app)
     jwt.init_app(app)
@@ -81,7 +79,7 @@ def create_app(config_name="default"):
     def handle_options_requests():
         if request.method == 'OPTIONS':
             response = app.make_response('')
-            response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+            response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization, Access-Control-Allow-Credentials")
             response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
             response.headers.add("Access-Control-Allow-Origin", "https://front-end-cafe-planta.vercel.app")
             response.headers.add("Access-Control-Allow-Credentials", "true")
@@ -92,7 +90,9 @@ def create_app(config_name="default"):
     # ------------------------------------
     @app.errorhandler(Unauthorized)
     def handle_unauthorized(e):
-        return jsonify({"error": "Invalid or expired token, please log in again."}), 401
+        response = jsonify({"error": "Invalid or expired token, please log in again."})
+        unset_jwt_cookies(response)  # Eliminar cookies en caso de token inválido
+        return response, 401
 
     # ------------------------------------
     # CONFIGURACIÓN DE CLOUDINARY
