@@ -74,3 +74,9 @@ def create_app():
 
 # Requerido por Vercel
 app = create_app()
+
+# Este "handler" es requerido para la integración con Vercel
+def handler(event, context):
+    from mangum import Mangum
+    asgi_app = app
+    return Mangum(asgi_app)(event, context)

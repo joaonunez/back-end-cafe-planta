@@ -18,6 +18,7 @@ flask-bcrypt = "*"
 cloudinary = "*"
 werkzeug = "*"
 qrcode = {extras = ["pil"], version = "*"}
+mangum = "*"
 
 [dev-packages]
 
