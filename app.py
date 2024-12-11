@@ -23,22 +23,22 @@ def create_app(config_name="default"):
     # ------------------------------------
     # CONFIGURACIÓN DE BASE DE DATOS
     # ------------------------------------
-    db_url = os.getenv("DATABASE_URL")
-    if not db_url:
-        raise RuntimeError("DATABASE_URL no está configurado. Asegúrate de definirla en tu entorno de Vercel.")
-    
-    app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+        "DATABASE_URL", 
+        "mysql+pymysql://cjo104346_admin:jcg6To$(EHU$@190.107.177.34:3306/cjo104346_cafeplanta"
+    )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # ------------------------------------
     # CONFIGURACIÓN JWT
     # ------------------------------------
-    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "super_secret")  # Cambiar en producción
-    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "super_super_secret")
+    app.config["JWT_SECRET_KEY"] = "super_secret"  # Cambiar en producción
+    app.config["SECRET_KEY"] = "super_super_secret"
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]  # Usar cookies para tokens
     app.config["JWT_ACCESS_COOKIE_PATH"] = "/"  # Ruta de la cookie de acceso
-    app.config["JWT_COOKIE_SECURE"] = os.getenv("FLASK_ENV", "production") == "production"  # Cambiar a True en producción
-    app.config["JWT_COOKIE_CSRF_PROTECT"] = True  # Habilitar en producción
+    app.config["JWT_COOKIE_SECURE"] = True  # Asegura que las cookies solo se envíen en conexiones HTTPS
+    app.config["JWT_COOKIE_SAMESITE"] = "None"  # Permite cookies en solicitudes cruzadas
+    app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Habilitar en producción
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
     app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
 
@@ -51,8 +51,12 @@ def create_app(config_name="default"):
     except Exception as e:
         raise RuntimeError(f"Error inicializando la base de datos: {e}")
 
-    cors.init_app(app, resources={r"/*": {"origins": "https://front-end-cafe-planta.vercel.app"}},
-                  supports_credentials=True)
+    cors.init_app(app, resources={r"/*": {"origins": [
+        "https://front-end-cafe-planta.vercel.app"
+    ]}},
+    supports_credentials=True,
+    allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
+    expose_headers="Authorization")
 
     bcrypt.init_app(app)
     jwt.init_app(app)
@@ -76,10 +80,10 @@ def create_app(config_name="default"):
     # MANEJO DE SOLICITUDES OPTIONS PARA CORS
     # ------------------------------------
     @app.before_request
-    def handle_options_requests():
+    def handle_options_request():
         if request.method == 'OPTIONS':
             response = app.make_response('')
-            response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization, Access-Control-Allow-Credentials")
+            response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
             response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
             response.headers.add("Access-Control-Allow-Origin", "https://front-end-cafe-planta.vercel.app")
             response.headers.add("Access-Control-Allow-Credentials", "true")
@@ -98,9 +102,9 @@ def create_app(config_name="default"):
     # CONFIGURACIÓN DE CLOUDINARY
     # ------------------------------------
     cloudinary.config(
-        cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", "dsk6jeymj"),
-        api_key=os.getenv("CLOUDINARY_API_KEY", "632813965993916"),
-        api_secret=os.getenv("CLOUDINARY_API_SECRET", "lSqeRpSRw4FNvCn3ew25hY3x-54")
+        cloud_name="dsk6jeymj",
+        api_key="632813965993916",
+        api_secret="lSqeRpSRw4FNvCn3ew25hY3x-54"
     )
 
     # ------------------------------------
@@ -133,7 +137,7 @@ def create_app(config_name="default"):
 # ------------------------------------
 # EJECUCIÓN DE LA APLICACIÓN
 # ------------------------------------
-app = create_app()  # Cambiado para asegurar que Vercel lo detecte
+app = create_app()
 
 if __name__ == "__main__": 
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 3001)))
