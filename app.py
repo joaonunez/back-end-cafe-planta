@@ -2,12 +2,12 @@ import os
 from flask import Flask, request, jsonify
 from extensions import db, migrate, cors, bcrypt, jwt
 from models import *  # Importar todos los modelos desde models/__init__.py
-from routes import (benefit, benefit_user, cafe, cart, product_rating,
-                    product_category, customer, combo_menu,
-                    combo_menu_detail, city, sale_detail, favorite,
-                    dining_area, country, product, state, role,
+from routes import (benefit, benefit_user, cafe, cart, product_rating, 
+                    product_category, customer, combo_menu, 
+                    combo_menu_detail, city, sale_detail, favorite, 
+                    dining_area, country, product, state, role, 
                     item_type, user, sale, cloudinary_bp)
-from flask_jwt_extended import (create_access_token, get_jwt,
+from flask_jwt_extended import (create_access_token, get_jwt, 
                                 get_jwt_identity, set_access_cookies)
 from werkzeug.exceptions import Unauthorized
 from datetime import datetime, timedelta, timezone
@@ -32,16 +32,12 @@ def create_app(config_name="default"):
     # ------------------------------------
     # CONFIGURACIÓN JWT
     # ------------------------------------
-    app.config["JWT_SECRET_KEY"] = "super_secret"  # Cambiar en producción
-    app.config["SECRET_KEY"] = "super_super_secret"
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "super_secret")  # Cambiar en producción
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "super_super_secret")
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]  # Usar cookies para tokens
     app.config["JWT_ACCESS_COOKIE_PATH"] = "/"  # Ruta de la cookie de acceso
-
-    # Ajustes para entorno de desarrollo
-    app.config["JWT_COOKIE_SECURE"] = False  # No requiere HTTPS en local
-    app.config["JWT_COOKIE_SAMESITE"] = "Lax"  # Permite solicitudes locales
-
-    app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Habilitar en producción
+    app.config["JWT_COOKIE_SECURE"] = True  # Cambiar a True en producción para usar HTTPS
+    app.config["JWT_COOKIE_CSRF_PROTECT"] = True  # Habilitar en producción
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
     app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
 
@@ -51,13 +47,11 @@ def create_app(config_name="default"):
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # Configurar CORS para entorno de desarrollo
-    cors.init_app(app, resources={r"/*": {"origins": [
-        "http://localhost:3000"  # Dominio del frontend local
-    ]}},
-    supports_credentials=True,
-    allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
-    expose_headers="Authorization")
+    # Configurar CORS con soporte para la URL de producción
+    cors.init_app(app, resources={r"/*": {"origins": "https://front-end-cafe-planta.vercel.app"}},
+                  supports_credentials=True,
+                  allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
+                  expose_headers="Authorization")
 
     bcrypt.init_app(app)
     jwt.init_app(app)
@@ -81,13 +75,12 @@ def create_app(config_name="default"):
     # MANEJO DE SOLICITUDES OPTIONS PARA CORS
     # ------------------------------------
     @app.before_request
-    def handle_options_request():
+    def handle_options_requests():
         if request.method == 'OPTIONS':
             response = app.make_response('')
-            # Añade las cabeceras necesarias para CORS
-            response.headers.add("Access-Control-Allow-Origin", request.headers.get("Origin"))
-            response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
             response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+            response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+            response.headers.add("Access-Control-Allow-Origin", "https://front-end-cafe-planta.vercel.app")
             response.headers.add("Access-Control-Allow-Credentials", "true")
             return response
 
@@ -102,9 +95,9 @@ def create_app(config_name="default"):
     # CONFIGURACIÓN DE CLOUDINARY
     # ------------------------------------
     cloudinary.config(
-        cloud_name="dsk6jeymj",
-        api_key="632813965993916",
-        api_secret="lSqeRpSRw4FNvCn3ew25hY3x-54"
+        cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", "dsk6jeymj"),
+        api_key=os.getenv("CLOUDINARY_API_KEY", "632813965993916"),
+        api_secret=os.getenv("CLOUDINARY_API_SECRET", "lSqeRpSRw4FNvCn3ew25hY3x-54")
     )
 
     # ------------------------------------
@@ -132,19 +125,11 @@ def create_app(config_name="default"):
     app.register_blueprint(sale)
     app.register_blueprint(cloudinary_bp)
 
-    # Ruta principal para verificar que el backend esté corriendo
-    @app.route("/")
-    def home():
-        return jsonify({"message": "Backend is running on localhost:3001!"})
-
     return app
 
-
 # ------------------------------------
-# DEFINICIÓN GLOBAL DE LA APLICACIÓN
+# EJECUCIÓN DE LA APLICACIÓN
 # ------------------------------------
-app = create_app()
-
-# Solo para desarrollo local
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=3001, debug=True)
+if __name__ == "__main__": 
+    app = create_app()
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 3001)), debug=False)
