@@ -17,13 +17,21 @@ class Favorite(db.Model):
 
     def serialize(self):
         item = self.get_item()  # Obtenemos el objeto producto o combo usando el método get_item
+        if item is None:
+            return {
+                "id": self.id,
+                "item_id": self.item_id,
+                "item_type_id": self.item_type_id,
+                "error": "El item no existe o no se encontró"
+            }
+        
         return {
-            "id": self.id,
-            "item_id": self.item_id,
+            "id": self.id,  # ID del favorito
+            "item_id": self.item_id,  # ID del producto o combo
             "item_name": item.name if item else None,  # Nombre del producto o combo
             "item_type_id": self.item_type_id,  # Tipo de ítem (1 = Combo, 2 = Producto)
-            "price": item.price if item else None,  # Precio del producto o combo
-            "image_url": item.image_url if item else None,  # URL de la imagen
+            "price": getattr(item, 'price', None),  # Precio del producto o combo
+            "image_url": getattr(item, 'image_url', None),  # URL de la imagen
             "cafe_id": getattr(item, 'cafe_id', None),  # ID de la cafetería asociada
             "cafe_name": getattr(item, 'cafe_name', None),  # Nombre de la cafetería (si está disponible)
             "stock": getattr(item, 'stock', None),  # Solo los productos tienen stock
@@ -33,6 +41,7 @@ class Favorite(db.Model):
     def get_item(self):
         """
         Devuelve la instancia del Producto o Combo correspondiente al `item_type_id`.
+        Se verifica si `item_type_id` corresponde a un Producto o a un Combo.
         """
         if self.item_type_id == 2:  # Producto
             return Product.query.get(self.item_id)
