@@ -2,13 +2,13 @@ import os
 from flask import Flask, request, jsonify
 from extensions import db, migrate, cors, bcrypt, jwt
 from models import *  # Importar todos los modelos desde models/__init__.py
-from routes import (benefit, benefit_user, cafe, cart, product_rating,
-                    product_category, customer, combo_menu,
-                    combo_menu_detail, city, sale_detail, favorite,
-                    dining_area, country, product, state, role,
+from routes import (benefit, benefit_user, cafe, cart, product_rating, 
+                    product_category, customer, combo_menu, 
+                    combo_menu_detail, city, sale_detail, favorite, 
+                    dining_area, country, product, state, role, 
                     item_type, user, sale, cloudinary_bp)
-from flask_jwt_extended import (create_access_token, get_jwt,
-                                get_jwt_identity, set_access_cookies)
+from flask_jwt_extended import (create_access_token, get_jwt, 
+                                get_jwt_identity, set_access_cookies, unset_jwt_cookies)
 from werkzeug.exceptions import Unauthorized
 from datetime import datetime, timedelta, timezone
 import cloudinary
@@ -24,7 +24,7 @@ def create_app(config_name="default"):
     # CONFIGURACIÓN DE BASE DE DATOS
     # ------------------------------------
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-        "DATABASE_URL",
+        "DATABASE_URL", 
         "mysql+pymysql://cjo104346_admin:jcg6To$(EHU$@190.107.177.34:3306/cjo104346_cafeplanta"
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -36,11 +36,8 @@ def create_app(config_name="default"):
     app.config["SECRET_KEY"] = "super_super_secret"
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]  # Usar cookies para tokens
     app.config["JWT_ACCESS_COOKIE_PATH"] = "/"  # Ruta de la cookie de acceso
-
-    # Ajustes para entorno de desarrollo
-    app.config["JWT_COOKIE_SECURE"] = False  # No requiere HTTPS en local
-    app.config["JWT_COOKIE_SAMESITE"] = "Lax"  # Permite solicitudes locales
-
+    app.config["JWT_COOKIE_SECURE"] = True  # Asegura que las cookies solo se envíen en conexiones HTTPS
+    app.config["JWT_COOKIE_SAMESITE"] = "None"  # Permite cookies en solicitudes cruzadas
     app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Habilitar en producción
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
     app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
@@ -48,12 +45,14 @@ def create_app(config_name="default"):
     # ------------------------------------
     # INICIALIZACIÓN DE EXTENSIONES
     # ------------------------------------
-    db.init_app(app)
-    migrate.init_app(app, db)
+    try:
+        db.init_app(app)
+        migrate.init_app(app, db)
+    except Exception as e:
+        raise RuntimeError(f"Error inicializando la base de datos: {e}")
 
-    # Configurar CORS para entorno de desarrollo
     cors.init_app(app, resources={r"/*": {"origins": [
-        "http://localhost:3000"  # Dominio del frontend local
+        "https://front-end-cafe-planta.vercel.app"
     ]}},
     supports_credentials=True,
     allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
@@ -84,10 +83,9 @@ def create_app(config_name="default"):
     def handle_options_request():
         if request.method == 'OPTIONS':
             response = app.make_response('')
-            # Añade las cabeceras necesarias para CORS
-            response.headers.add("Access-Control-Allow-Origin", request.headers.get("Origin"))
-            response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
             response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+            response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+            response.headers.add("Access-Control-Allow-Origin", "https://front-end-cafe-planta.vercel.app")
             response.headers.add("Access-Control-Allow-Credentials", "true")
             return response
 
@@ -96,7 +94,9 @@ def create_app(config_name="default"):
     # ------------------------------------
     @app.errorhandler(Unauthorized)
     def handle_unauthorized(e):
-        return jsonify({"error": "Invalid or expired token, please log in again."}), 401
+        response = jsonify({"error": "Invalid or expired token, please log in again."})
+        unset_jwt_cookies(response)  # Eliminar cookies en caso de token inválido
+        return response, 401
 
     # ------------------------------------
     # CONFIGURACIÓN DE CLOUDINARY
@@ -132,19 +132,12 @@ def create_app(config_name="default"):
     app.register_blueprint(sale)
     app.register_blueprint(cloudinary_bp)
 
-    # Ruta principal para verificar que el backend esté corriendo
-    @app.route("/")
-    def home():
-        return jsonify({"message": "Backend is running on localhost:3001!"})
-
     return app
 
-
 # ------------------------------------
-# DEFINICIÓN GLOBAL DE LA APLICACIÓN
+# EJECUCIÓN DE LA APLICACIÓN
 # ------------------------------------
 app = create_app()
 
-# Solo para desarrollo local
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=3001, debug=True)
+if __name__ == "__main__": 
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 3001)))

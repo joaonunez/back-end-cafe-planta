@@ -42,10 +42,16 @@ def list_favorites():
             item = favorite.get_item()  # Obtener el producto o combo
             if item:
                 favorite_items.append({
-                    "id": favorite.id,
-                    "item_id": favorite.item_id,
-                    "item_type_id": favorite.item_type_id,
-                    "item_name": item.name,  # Incluir directamente el nombre del ítem ser especifico !
+                    "favorite_id": favorite.id,  # ID del favorito en la tabla de favoritos
+                    "item_id": favorite.item_id,  # ID del producto o combo
+                    "item_type_id": favorite.item_type_id,  # Tipo de ítem (1 = Combo, 2 = Producto)
+                    "item_name": item.name,  # Nombre del producto o combo
+                    "price": getattr(item, 'price', None),  # Precio del producto o combo
+                    "image_url": getattr(item, 'image_url', None),  # URL de la imagen
+                    "cafe_id": getattr(item, 'cafe_id', None),  # ID de la cafetería asociada
+                    "cafe_name": getattr(item, 'cafe_name', None),  # Nombre de la cafetería
+                    "stock": getattr(item, 'stock', None),  # Solo los productos tienen stock
+                    "description": getattr(item, 'description', None)  # Solo los combos tienen descripción
                 })
             else:
                 print(f"Elemento no encontrado para favorito con id: {favorite.id}")
@@ -55,6 +61,7 @@ def list_favorites():
     except Exception as e:
         print(f"Error listando favoritos: {e}")
         return jsonify({"error": "Error interno del servidor"}), 500
+
 
 
 

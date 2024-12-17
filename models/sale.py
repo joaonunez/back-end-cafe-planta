@@ -1,8 +1,8 @@
-# models/sale.py
 from extensions import db
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
+import pytz
 
 class Sale(db.Model):
     __tablename__ = 'sale'
@@ -25,9 +25,13 @@ class Sale(db.Model):
     details = relationship('SaleDetail', backref='sale', lazy=True)
 
     def serialize(self):
+        # Define the timezone for Santiago, Chile
+        santiago_tz = pytz.timezone('America/Santiago')
+        formatted_date = self.date.astimezone(santiago_tz).strftime('%Y-%m-%d %H:%M:%S') if self.date else None
+
         return {
             "id": self.id,
-            "date": self.date,
+            "date": formatted_date,
             "total_amount": self.total_amount,
             "status": self.status,
             "comments": self.comments,
@@ -38,5 +42,5 @@ class Sale(db.Model):
             "waiter_rut": self.waiter_rut,
             "waiter_name": f"{self.waiter.first_name} {self.waiter.last_name_father}" if self.waiter else "Aún sin asignar",
             "dining_area_id": self.dining_area_id,
-            "dining_area_number": self.dining_area.number
+            "dining_area_number": self.dining_area.number if self.dining_area else "Aún sin asignar"
         }
