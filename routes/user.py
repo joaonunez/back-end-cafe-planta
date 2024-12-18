@@ -199,3 +199,41 @@ def create_new_user():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Error al crear el usuario: {str(e)}"}), 500
+
+@user.route("/change_password/<string:rut>", methods=["PUT"])
+@jwt_required()
+def change_user_password(rut):
+    current_user_rut = get_jwt_identity()
+    current_user = User.query.filter_by(rut=current_user_rut).first()
+
+    # Verificar que es admin
+    if not current_user or current_user.role_id != 1:
+        return jsonify({"error": "No está autorizado para cambiar la contraseña"}), 403
+
+    data = request.get_json()
+    admin_rut = data.get("admin_rut")
+    admin_password = data.get("admin_password")
+    new_password = data.get("new_password")
+
+    if not admin_rut or not admin_password or not new_password:
+        return jsonify({"error": "Faltan campos requeridos"}), 400
+
+    if current_user.rut != admin_rut:
+        return jsonify({"error": "RUT de administrador no coincide"}), 401
+
+    if not bcrypt.check_password_hash(current_user.password, admin_password):
+        return jsonify({"error": "Contraseña del administrador incorrecta"}), 401
+
+    user_to_update = User.query.filter_by(rut=rut).first()
+    if not user_to_update:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+
+    hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+    user_to_update.password = hashed_password
+
+    try:
+        db.session.commit()
+        return jsonify({"message": "Contraseña cambiada exitosamente"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Error al cambiar la contraseña: {str(e)}"}), 500
