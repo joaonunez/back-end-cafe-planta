@@ -1,10 +1,13 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, url_for
 from models import User
 from extensions import db, bcrypt
 from flask_jwt_extended import (
     create_access_token, set_access_cookies, get_jwt_identity, unset_jwt_cookies, jwt_required
 )
 from datetime import timedelta
+from itsdangerous import URLSafeTimedSerializer
+from utils import send_email
+from flask import current_app
 
 user = Blueprint("user", __name__, url_prefix="/user")
 
@@ -199,3 +202,71 @@ def create_new_user():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Error al crear el usuario: {str(e)}"}), 500
+
+@user.route("/change_password/<string:rut>", methods=["PUT"])
+@jwt_required()
+def change_user_password(rut):
+    current_user_rut = get_jwt_identity()
+    current_user = User.query.filter_by(rut=current_user_rut).first()
+
+    # Verificar que es admin
+    if not current_user or current_user.role_id != 1:
+        return jsonify({"error": "No está autorizado para cambiar la contraseña"}), 403
+
+    data = request.get_json()
+    admin_rut = data.get("admin_rut")
+    admin_password = data.get("admin_password")
+    new_password = data.get("new_password")
+
+    if not admin_rut or not admin_password or not new_password:
+        return jsonify({"error": "Faltan campos requeridos"}), 400
+
+    if current_user.rut != admin_rut:
+        return jsonify({"error": "RUT de administrador no coincide"}), 401
+
+    if not bcrypt.check_password_hash(current_user.password, admin_password):
+        return jsonify({"error": "Contraseña del administrador incorrecta"}), 401
+
+    user_to_update = User.query.filter_by(rut=rut).first()
+    if not user_to_update:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+
+    hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+    user_to_update.password = hashed_password
+
+    try:
+        db.session.commit()
+        return jsonify({"message": "Contraseña cambiada exitosamente"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Error al cambiar la contraseña: {str(e)}"}), 500
+
+#---------------------------------------------------
+def generate_reset_token(email):
+    serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    return serializer.dumps(email, salt="password-reset-salt")
+
+@user.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.get_json()
+    email = data.get('email')
+
+    if not email:
+        return jsonify({"message": "Email is required"}), 400
+
+    # Generar token seguro
+    token = generate_reset_token(email)
+    reset_link = f"{request.host_url}reset-password/{token}"
+
+    # Enviar correo
+    subject = "Recuperación de Contraseña"
+    html_content = f"""
+    <p>Haz clic en el enlace para recuperar tu contraseña:</p>
+    <a href="{reset_link}">{reset_link}</a>
+    """
+
+    status_code, _, _ = send_email(email, subject, html_content)
+    if status_code == 202:
+        return jsonify({"message": "Correo enviado correctamente."}), 200
+    else:
+        return jsonify({"message": "Error al enviar correo."}), 500
