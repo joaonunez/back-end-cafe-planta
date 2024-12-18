@@ -13,6 +13,7 @@ from werkzeug.exceptions import Unauthorized
 from datetime import datetime, timedelta, timezone
 import cloudinary
 import cloudinary.uploader
+from dotenv import load_dotenv
 
 # ------------------------------------
 # FACTORY DE CREACIÓN DE FLASK APP
@@ -41,6 +42,13 @@ def create_app(config_name="development"):
     app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Deshabilitar en desarrollo
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
     app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
+
+
+    load_dotenv()
+    # Configuración de SendGrid
+    app.config["SENDGRID_API_KEY"] = os.getenv("SENDGRID_API_KEY")
+    app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER")
+
 
     # ------------------------------------
     # INICIALIZACIÓN DE EXTENSIONES

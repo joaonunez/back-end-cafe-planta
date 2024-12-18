@@ -20,6 +20,8 @@ werkzeug = "*"
 qrcode = {extras = ["pil"], version = "*"}
 mangum = "*"
 pytz = "*"
+sendgrid = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
