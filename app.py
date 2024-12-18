@@ -17,7 +17,7 @@ import cloudinary.uploader
 # ------------------------------------
 # FACTORY DE CREACIÓN DE FLASK APP
 # ------------------------------------
-def create_app(config_name="development"):
+def create_app(config_name="default"):
     app = Flask(__name__)
 
     # ------------------------------------
@@ -36,9 +36,9 @@ def create_app(config_name="development"):
     app.config["SECRET_KEY"] = "super_super_secret"
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]  # Usar cookies para tokens
     app.config["JWT_ACCESS_COOKIE_PATH"] = "/"  # Ruta de la cookie de acceso
-    app.config["JWT_COOKIE_SECURE"] = False  # Desactivar para desarrollo
-    app.config["JWT_COOKIE_SAMESITE"] = "Lax"  # Ajuste para desarrollo
-    app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Deshabilitar en desarrollo
+    app.config["JWT_COOKIE_SECURE"] = True  # Asegura que las cookies solo se envíen en conexiones HTTPS
+    app.config["JWT_COOKIE_SAMESITE"] = "None"  # Permite cookies en solicitudes cruzadas
+    app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Habilitar en producción
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
     app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
 
@@ -52,8 +52,7 @@ def create_app(config_name="development"):
         raise RuntimeError(f"Error inicializando la base de datos: {e}")
 
     cors.init_app(app, resources={r"/*": {"origins": [
-        "https://front-end-cafe-planta.vercel.app", 
-        "http://localhost:3000"
+        "https://front-end-cafe-planta.vercel.app"
     ]}},
     supports_credentials=True,
     allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
@@ -86,7 +85,7 @@ def create_app(config_name="development"):
             response = app.make_response('')
             response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
             response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-            response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000")
+            response.headers.add("Access-Control-Allow-Origin", "https://front-end-cafe-planta.vercel.app")
             response.headers.add("Access-Control-Allow-Credentials", "true")
             return response
 
@@ -141,4 +140,4 @@ def create_app(config_name="development"):
 app = create_app()
 
 if __name__ == "__main__": 
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 3001)), debug=True)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 3001)))
