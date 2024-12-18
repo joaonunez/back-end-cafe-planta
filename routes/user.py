@@ -112,3 +112,90 @@ def edit_user(rut):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Error al actualizar el usuario: {str(e)}"}), 500
+
+@user.route("/delete/<string:rut>", methods=["DELETE"])
+@jwt_required()
+def delete_user(rut):
+    # Obtenemos la identidad del JWT (rut del usuario logueado)
+    current_user_rut = get_jwt_identity()
+    current_user = User.query.filter_by(rut=current_user_rut).first()
+
+    # Verificar que el usuario actual sea administrador
+    if not current_user or current_user.role_id != 1:
+        return jsonify({"error": "No está autorizado para eliminar usuarios"}), 403
+
+    data = request.get_json()
+    admin_rut = data.get("admin_rut")
+    admin_password = data.get("password")
+
+    # Verificar que el rut del admin coincida con el usuario logueado y que la contraseña sea correcta
+    if current_user.rut != admin_rut:
+        return jsonify({"error": "No coincide el rut del administrador"}), 401
+
+    if not bcrypt.check_password_hash(current_user.password, admin_password):
+        return jsonify({"error": "Contraseña de administrador incorrecta"}), 401
+
+    # Buscar el usuario a eliminar
+    user_to_delete = User.query.filter_by(rut=rut).first()
+    if not user_to_delete:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+
+    # Evitar que el administrador se elimine a sí mismo
+    if user_to_delete.rut == current_user.rut:
+        return jsonify({"error": "No puedes eliminar tu propia cuenta"}), 400
+
+    try:
+        db.session.delete(user_to_delete)
+        db.session.commit()
+        return jsonify({"message": "Usuario eliminado exitosamente"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Error al eliminar el usuario: {str(e)}"}), 500
+
+@user.route("/create-user", methods=["POST"])
+@jwt_required()
+def create_new_user():
+    current_user_rut = get_jwt_identity()
+    current_user = User.query.filter_by(rut=current_user_rut).first()
+
+    # Validar que sea administrador
+    if not current_user or current_user.role_id != 1:
+        return jsonify({"error": "No está autorizado para crear usuarios"}), 403
+
+    data = request.get_json()
+    
+    # Verificar que los campos requeridos estén presentes
+    required_fields = ["rut", "first_name", "last_name_father", "last_name_mother", "username", "email", "password", "role_id", "cafe_id"]
+    if not all(field in data and data[field] for field in required_fields):
+        return jsonify({"error": "Faltan campos requeridos"}), 400
+
+    # Verificar que el email o username no estén ya en uso
+    if User.query.filter_by(email=data["email"]).first():
+        return jsonify({"error": f"El email {data['email']} ya está en uso"}), 400
+
+    if User.query.filter_by(username=data["username"]).first():
+        return jsonify({"error": f"El username {data['username']} ya está en uso"}), 400
+
+    # Encriptar la contraseña
+    hashed_password = bcrypt.generate_password_hash(data["password"]).decode('utf-8')
+
+    # Crear el usuario
+    new_user = User(
+        rut=data["rut"],
+        first_name=data["first_name"],
+        last_name_father=data["last_name_father"],
+        last_name_mother=data["last_name_mother"],
+        username=data["username"],
+        email=data["email"],
+        password=hashed_password,
+        role_id=int(data["role_id"]),
+        cafe_id=int(data["cafe_id"])
+    )
+
+    try:
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify({"message": "Usuario creado exitosamente", "user": new_user.serialize()}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Error al crear el usuario: {str(e)}"}), 500
