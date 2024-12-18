@@ -5,6 +5,7 @@ __pycache__/
 
 # C extensions
 *.so
+.env
 
 # Distribution / packaging
 .Python
@@ -102,3 +103,4 @@ dmypy.json
 
 # Flask-Migrate migration files
 migrations/
+sendgrid.env
